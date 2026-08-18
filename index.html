@@ -238,6 +238,7 @@
   .kpi-tile .kpi-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
   .kpi-tile .kpi-value { font-size: 28px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .kpi-tile .kpi-value.dim { color: var(--text-muted); font-size: 15px; font-weight: 600; }
+  .kpi-tile .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; font-variant-numeric: tabular-nums; }
   .info-dot {
     display: inline-flex; align-items: center; justify-content: center;
     width: 14px; height: 14px; border-radius: 50%;
@@ -1104,6 +1105,10 @@ function kpiTile(label, rawValue, tipKey, opts) {
     val.textContent = "0";
     animateCount(val, rawValue, { format: opts.format || fmtInt });
   }
+  if (opts.sub) {
+    const sub = document.createElement("div"); sub.className = "kpi-sub"; sub.textContent = opts.sub;
+    tile.appendChild(sub);
+  }
   if (KPI_TIPS[tipKey]) bindTip(tile, label, KPI_TIPS[tipKey]);
   return tile;
 }
@@ -1248,8 +1253,8 @@ function renderTab(containerId, p, deviceLabel) {
     const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
     kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
-    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v) }));
-    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v) }));
+    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(funnelSteps[2].value)} из ${fmtInt(funnelSteps[1].value)}` }));
+    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(funnelSteps[3].value)} из ${fmtInt(funnelSteps[1].value)}` }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));

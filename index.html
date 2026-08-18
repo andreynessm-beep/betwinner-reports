@@ -173,9 +173,11 @@
 
   /* ---------- KPI tiles ---------- */
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: grid; grid-template-columns: repeat(4, 1fr);
     gap: 12px;
   }
+  @media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .kpi-grid { grid-template-columns: 1fr; } }
   .kpi-grid .kpi-tile:nth-child(1) { transition-delay: .02s; }
   .kpi-grid .kpi-tile:nth-child(2) { transition-delay: .08s; }
   .kpi-grid .kpi-tile:nth-child(3) { transition-delay: .14s; }
@@ -698,10 +700,9 @@ const FUNNEL_STAGE_COLORS = [
 // reference: color-chip labels on the left, an unbroken "stacked discs" cone
 // with the value inside each band, on the right.
 function buildVisualFunnel(steps) {
-  const max = steps[0] ? steps[0].value : 1;
   const n = steps.length;
   const svgNS = "http://www.w3.org/2000/svg";
-  const trackW = 300, rowH = 68, totalH = n * rowH, capRy = 9;
+  const trackW = 300, rowH = 46, totalH = n * rowH, capRy = 7;
 
   const outer = document.createElement("div"); outer.className = "vfunnel2";
   const labels = document.createElement("div"); labels.className = "vfunnel2-labels";
@@ -715,7 +716,14 @@ function buildVisualFunnel(steps) {
   const defs = document.createElementNS(svgNS, "defs");
   svg.appendChild(defs);
 
-  const widthFor = v => Math.max(Math.sqrt(v / max), v > 0 ? 0.11 : 0) * trackW;
+  // Fixed geometric taper, not scaled to the real values: real funnel drop-offs
+  // often span 3-4 orders of magnitude (24000 -> 1), and a value-proportional
+  // width just collapses every stage after the first into an identical sliver.
+  // The reference chart does the same — the cone is a consistent visual motif,
+  // the real numbers live in the text and in the conversion pills.
+  const topRatio = 0.60, shrink = 0.76;
+  const boundaryFrac = i => topRatio * Math.pow(shrink, i);
+  const widthFor = i => boundaryFrac(i) * trackW;
 
   steps.forEach((s, i) => {
     const colors = FUNNEL_STAGE_COLORS[Math.min(i, FUNNEL_STAGE_COLORS.length-1)];
@@ -725,9 +733,8 @@ function buildVisualFunnel(steps) {
     labels.appendChild(chip);
 
     const y0 = i * rowH, y1 = y0 + rowH;
-    const topW = widthFor(s.value);
-    const nextVal = i < n - 1 ? steps[i+1].value : s.value;
-    const botW = widthFor(nextVal);
+    const topW = widthFor(i);
+    const botW = widthFor(i + 1);
     const cx = trackW / 2;
     const tl = cx - topW/2, tr = cx + topW/2, bl = cx - botW/2, br = cx + botW/2;
 

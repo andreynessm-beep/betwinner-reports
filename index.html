@@ -8,15 +8,16 @@
 <style>
   :root {
     color-scheme: light;
-    --surface-1: #fcfcfb;
-    --page: #f4f4f2;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --grid: #e1e0d9;
+    --surface-1: #ffffff;
+    --page: #f2f4f8;
+    --text-primary: #0b1220;
+    --text-secondary: #52596b;
+    --text-muted: #8a90a3;
+    --grid: #e6e9f0;
     --baseline: #c3c2b7;
-    --border: rgba(11,11,11,0.10);
-    --card-shadow: 0 1px 2px rgba(11,11,11,0.06), 0 1px 8px rgba(11,11,11,0.04);
+    --border: rgba(11,18,32,0.08);
+    --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 20px rgba(15,23,42,0.06);
+    --card-shadow-hover: 0 4px 10px rgba(15,23,42,0.06), 0 14px 34px rgba(15,23,42,0.10);
     --series-1: #2a78d6;
     --series-2: #eb6834;
     --series-3: #1baf7a;
@@ -24,7 +25,7 @@
     --series-5: #e87ba4;
     --series-6: #008300;
     --series-7: #4a3aa7;
-    --series-other: #898781;
+    --series-other: #8a90a3;
     --good: #0ca30c;
     --warning: #fab219;
     --serious: #ec835a;
@@ -33,6 +34,10 @@
     --seq-350: #5598e7;
     --seq-450: #2a78d6;
     --seq-550: #1c5cab;
+    --brand-a: #2a78d6;
+    --brand-b: #6d4ae0;
+    --page-glow: radial-gradient(1200px 480px at 12% -10%, rgba(42,120,214,0.10), transparent 60%),
+                 radial-gradient(900px 420px at 95% 0%, rgba(109,74,224,0.08), transparent 55%);
   }
   * { box-sizing: border-box; }
   html, body {
@@ -41,59 +46,104 @@
     color: var(--text-primary);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   }
-  body { min-height: 100vh; }
+  body { min-height: 100vh; background-image: var(--page-glow); background-attachment: fixed; }
+
+  /* transition + class-toggle, not @keyframes — driven by style diffing rather
+     than the animation timeline, so it can't get stuck mid-way */
+  .reveal { opacity: 0; transform: translateY(10px); transition: opacity .45s cubic-bezier(.2,.7,.3,1), transform .45s cubic-bezier(.2,.7,.3,1); }
+  .reveal.revealed { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: .001ms !important; animation-duration: .001ms !important; }
+  }
 
   /* ---------- password gate ---------- */
   #gate {
     position: fixed; inset: 0; z-index: 100;
     display: flex; align-items: center; justify-content: center;
-    background: var(--page);
+    background:
+      radial-gradient(900px 500px at 15% 10%, rgba(42,120,214,0.35), transparent 60%),
+      radial-gradient(900px 500px at 85% 90%, rgba(109,74,224,0.30), transparent 60%),
+      linear-gradient(160deg, #0b1220, #131b31 55%, #0b1220);
   }
   #gate.hidden { display: none; }
   .gate-card {
-    background: var(--surface-1);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
-    padding: 32px 28px;
-    width: 100%; max-width: 340px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    padding: 40px 32px;
+    width: 100%; max-width: 360px;
     text-align: center;
+    animation: revealUp .6s cubic-bezier(.2,.7,.3,1) both;
   }
-  .gate-card h1 { font-size: 17px; margin: 0 0 6px; }
-  .gate-card p { font-size: 13px; color: var(--text-secondary); margin: 0 0 18px; }
+  .gate-logo { margin: 0 auto 18px; }
+  .gate-card h1 { font-size: 18px; margin: 0 0 6px; color: #fff; }
+  .gate-card p { font-size: 13px; color: rgba(255,255,255,0.6); margin: 0 0 20px; }
   .gate-card input {
-    width: 100%; padding: 10px 12px; font-size: 14px;
-    border: 1px solid var(--border); border-radius: 8px;
-    background: var(--page); color: var(--text-primary);
-    margin-bottom: 10px;
+    width: 100%; padding: 12px 14px; font-size: 14px;
+    border: 1px solid rgba(255,255,255,0.16); border-radius: 10px;
+    background: rgba(255,255,255,0.06); color: #fff;
+    margin-bottom: 12px; outline: none; transition: border-color .15s, background .15s;
   }
+  .gate-card input::placeholder { color: rgba(255,255,255,0.35); }
+  .gate-card input:focus { border-color: var(--brand-a); background: rgba(255,255,255,0.1); }
   .gate-card button {
-    width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600;
-    border: none; border-radius: 8px;
-    background: var(--series-1); color: #fff; cursor: pointer;
+    width: 100%; padding: 12px 14px; font-size: 14px; font-weight: 700;
+    border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+    color: #fff; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(42,120,214,0.35);
+    transition: transform .15s, box-shadow .15s;
   }
-  .gate-card button:hover { opacity: 0.92; }
-  .gate-error { color: var(--critical); font-size: 12px; margin-top: 10px; min-height: 16px; }
+  .gate-card button:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(42,120,214,0.45); }
+  .gate-card button:active { transform: translateY(0); }
+  .gate-error { color: #ff8a8a; font-size: 12px; margin-top: 12px; min-height: 16px; }
 
   /* ---------- app shell ---------- */
-  #app { display: none; max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+  #app { display: none; max-width: 1120px; margin: 0 auto; padding: 0 20px 60px; }
   #app.visible { display: block; }
 
-  header.report-header { margin-bottom: 20px; }
-  header.report-header h1 { font-size: 22px; margin: 0 0 4px; }
-  header.report-header .sub { font-size: 13px; color: var(--text-secondary); }
-  header.report-header .sub b { color: var(--text-primary); font-weight: 600; }
+  header.report-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    margin: 0 -20px 24px; padding: 26px 20px 28px;
+    background: linear-gradient(120deg, #0b1220 0%, #16223f 55%, #221a45 100%);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 10px 30px rgba(11,18,32,0.18);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-mark {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+    box-shadow: 0 6px 18px rgba(42,120,214,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 17px; color: #fff; letter-spacing: -0.5px;
+  }
+  header.report-header h1 { font-size: 20px; margin: 0; color: #fff; font-weight: 700; }
+  header.report-header .sub { font-size: 12.5px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+  header.report-header .sub b { color: rgba(255,255,255,0.92); font-weight: 600; }
+  .period-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+    color: #fff; font-size: 12px; font-weight: 600;
+    padding: 8px 14px; border-radius: 999px; white-space: nowrap;
+  }
+  .period-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #34e08a; box-shadow: 0 0 0 3px rgba(52,224,138,0.25); }
 
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 20px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 24px; position: relative; }
   .tab-btn {
-    padding: 10px 16px; font-size: 14px; font-weight: 600;
+    padding: 10px 18px; font-size: 14px; font-weight: 600;
     background: none; border: none; cursor: pointer;
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
+    transition: color .15s;
+    border-radius: 8px 8px 0 0;
   }
-  .tab-btn.active { color: var(--series-1); border-bottom-color: var(--series-1); }
-  .tab-btn:hover:not(.active) { color: var(--text-primary); }
+  .tab-btn.active { color: var(--brand-a); border-bottom-color: var(--brand-a); }
+  .tab-btn:hover:not(.active) { color: var(--text-primary); background: rgba(42,120,214,0.06); }
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
@@ -126,12 +176,31 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
   }
+  .kpi-grid .kpi-tile:nth-child(1) { transition-delay: .02s; }
+  .kpi-grid .kpi-tile:nth-child(2) { transition-delay: .08s; }
+  .kpi-grid .kpi-tile:nth-child(3) { transition-delay: .14s; }
+  .kpi-grid .kpi-tile:nth-child(4) { transition-delay: .20s; }
+  .kpi-grid .kpi-tile:nth-child(5) { transition-delay: .26s; }
   .kpi-tile {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px; box-shadow: var(--card-shadow); position: relative; cursor: default;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 18px; box-shadow: var(--card-shadow); position: relative; cursor: default;
+    overflow: hidden; transition: transform .18s ease, box-shadow .18s ease;
   }
-  .kpi-tile .kpi-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-  .kpi-tile .kpi-value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .kpi-tile:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+  .kpi-tile::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: var(--kpi-accent, var(--brand-a));
+  }
+  .kpi-tile-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .kpi-icon {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--kpi-accent, var(--brand-a)) 14%, transparent);
+    color: var(--kpi-accent, var(--brand-a));
+  }
+  .kpi-icon svg { width: 16px; height: 16px; }
+  .kpi-tile .kpi-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+  .kpi-tile .kpi-value { font-size: 28px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .kpi-tile .kpi-value.dim { color: var(--text-muted); font-size: 15px; font-weight: 600; }
   .info-dot {
     display: inline-flex; align-items: center; justify-content: center;
@@ -142,8 +211,8 @@
 
   /* ---------- cards ---------- */
   .card {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px; box-shadow: var(--card-shadow);
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; box-shadow: var(--card-shadow);
   }
   .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -159,22 +228,37 @@
   .bar-list { display: flex; flex-direction: column; gap: 10px; }
   .bar-row { display: grid; grid-template-columns: 160px 1fr 70px; align-items: center; gap: 10px; font-size: 12px; }
   .bar-row.compact { grid-template-columns: 120px 1fr 60px; }
-  .bar-track { background: var(--grid); border-radius: 4px; height: 22px; overflow: hidden; cursor: default; }
-  .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
-  .bar-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .bar-track { background: var(--grid); border-radius: 6px; height: 22px; overflow: hidden; cursor: default; }
+  .bar-fill {
+    height: 100%; border-radius: 6px; width: 0 !important; transition: width .8s cubic-bezier(.2,.8,.2,1);
+    background: linear-gradient(90deg, var(--brand-a), #4c9be8);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .bar-fill.animate-in { width: var(--target-w, 0%) !important; }
+  .bar-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); font-weight: 600; }
   .bar-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
-  .bar-row.expandable .bar-row-label { cursor: pointer; color: var(--series-1); text-decoration: underline dotted; }
-  .bar-sub-list { margin: 2px 0 4px 0; padding-left: 12px; border-left: 2px solid var(--grid); display: none; }
-  .bar-sub-list.open { display: flex; flex-direction: column; gap: 8px; }
+  .bar-row.expandable .bar-row-label { cursor: pointer; color: var(--brand-a); text-decoration: underline dotted; font-weight: 600; }
+  .bar-sub-list {
+    display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease;
+    margin: 0 0 0 0; padding-left: 12px; border-left: 2px solid var(--grid);
+  }
+  .bar-sub-list > div { overflow: hidden; }
+  .bar-sub-list.open { grid-template-rows: 1fr; margin: 2px 0 4px 0; }
 
   /* ---------- visual funnel (trapezoid) ---------- */
   .vfunnel { display: flex; flex-direction: column; }
   .vfunnel-row { display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; gap: 10px; }
-  .vfunnel-svg { width: 100%; height: 46px; display: block; }
-  .vfunnel-label { font-size: 13px; color: var(--text-primary); font-weight: 600; }
-  .vfunnel-meta { text-align: right; font-size: 13px; }
-  .vfunnel-meta .val { font-weight: 700; font-variant-numeric: tabular-nums; }
-  .vfunnel-meta .cr { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .vfunnel-svg { width: 100%; height: 54px; display: block; filter: drop-shadow(0 6px 10px rgba(42,120,214,0.18)); }
+  .vfunnel-poly { transform: scaleY(0); transform-origin: center top; transition: transform .55s cubic-bezier(.2,.8,.2,1); }
+  .vfunnel-poly.animate-in { transform: scaleY(1); }
+  .vfunnel-label { font-size: 13.5px; color: var(--text-primary); font-weight: 700; }
+  .vfunnel-meta { text-align: right; font-size: 14px; }
+  .vfunnel-meta .val { font-weight: 800; font-variant-numeric: tabular-nums; font-size: 16px; }
+  .vfunnel-meta .cr {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--brand-a); margin-top: 3px;
+    background: color-mix(in srgb, var(--brand-a) 12%, transparent);
+    padding: 2px 8px; border-radius: 999px;
+  }
   .vfunnel-drop { grid-column: 1 / -1; font-size: 11px; color: var(--text-muted); padding: 2px 0 2px 170px; }
 
   /* ---------- line/trend chart ---------- */
@@ -188,12 +272,15 @@
     text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
     color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--grid);
   }
-  table.data-table td, table.events-table td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  table.data-table td, table.events-table td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; transition: background .12s; }
   table.data-table tr:last-child td, table.events-table tr:last-child td { border-bottom: none; }
   table.data-table .num, table.events-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.data-table td.name-cell { max-width: 320px; overflow-wrap: anywhere; }
+  table.data-table tbody tr:not(.group-row):not(.sub-row):nth-child(even) td,
+  table.events-table tbody tr:not(.detail-row):nth-child(even) td { background: color-mix(in srgb, var(--brand-a) 2.5%, transparent); }
+  table.data-table tbody tr:hover td, table.events-table tbody tr:hover td { background: color-mix(in srgb, var(--brand-a) 6%, transparent); }
   tr.zero-row { opacity: 0.5; }
-  tr.group-row td { font-weight: 700; background: var(--page); }
+  tr.group-row td { font-weight: 700; background: color-mix(in srgb, var(--brand-a) 4%, var(--page)); }
   tr.sub-row td.name-cell { padding-left: 26px; color: var(--text-secondary); font-weight: 400; font-size: 12px; }
   .event-name-cell { display: flex; align-items: center; gap: 6px; cursor: default; }
   .event-name-cell.expandable { cursor: pointer; }
@@ -223,22 +310,36 @@
   .split-stat-item .l { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
   .split-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 14px; background: var(--grid); }
 
-  /* ---------- technical section divider ---------- */
-  details.section-collapse { margin-top: 10px; }
-  details.section-collapse > summary {
-    cursor: pointer; list-style: none; font-size: 14px; font-weight: 700; color: var(--text-primary);
-    padding: 12px 0; border-top: 1px solid var(--grid); display: flex; align-items: center; gap: 8px;
+  /* ---------- collapsible section (animated, progressive disclosure) ---------- */
+  .section-collapse { margin-top: 4px; border-top: 1px solid var(--grid); }
+  .section-collapse-header {
+    all: unset; box-sizing: border-box; cursor: pointer; width: 100%;
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    padding: 15px 4px; display: flex; align-items: center; gap: 10px;
+    border-radius: 8px; transition: background .15s;
   }
-  details.section-collapse > summary::-webkit-details-marker { display: none; }
-  details.section-collapse > summary::before { content: "▸"; color: var(--text-muted); transition: transform .15s; font-size: 11px; }
-  details.section-collapse[open] > summary::before { transform: rotate(90deg); }
-  details.section-collapse > summary .tech-hint { font-weight: 400; font-size: 12px; color: var(--text-muted); }
-  details.section-collapse > .section-collapse-body { padding: 4px 0 8px; }
+  .section-collapse-header:hover { background: rgba(42,120,214,0.05); }
+  .section-collapse-header:focus-visible { outline: 2px solid var(--brand-a); outline-offset: 2px; }
+  .section-collapse-header .chevron-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 6px; background: var(--grid); color: var(--text-muted);
+    font-size: 10px; transition: transform .2s ease, background .2s, color .2s; flex-shrink: 0;
+  }
+  .section-collapse.open .chevron-ico { transform: rotate(90deg); background: var(--brand-a); color: #fff; }
+  .section-collapse-header .tech-hint { font-weight: 400; font-size: 12px; color: var(--text-muted); }
+  .section-collapse-animate { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s cubic-bezier(.2,.8,.2,1); }
+  .section-collapse.open .section-collapse-animate { grid-template-rows: 1fr; }
+  .section-collapse-body { overflow: hidden; padding: 4px 4px 18px; min-height: 0; }
 
-  .funnel-highlight { margin: 22px 0 8px; }
-  .funnel-highlight-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
-  .funnel-highlight-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
-  .funnel-scope-note { font-size: 12px; color: var(--text-muted); margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--grid); }
+  .funnel-highlight { margin: 24px 0 4px; }
+  .funnel-highlight-title { font-size: 17px; font-weight: 800; margin-bottom: 2px; letter-spacing: -.01em; }
+  .funnel-highlight-hint { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
+  .funnel-scope-note { font-size: 12px; color: var(--text-muted); margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--grid); }
+  .funnel-card { position: relative; overflow: hidden; }
+  .funnel-card::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand-a) 5%, transparent), transparent 40%);
+  }
 
   /* ---------- tooltip (custom, follows pointer) ---------- */
   #tt {
@@ -258,6 +359,7 @@
 
 <div id="gate">
   <div class="gate-card">
+    <div class="logo-mark gate-logo" style="margin-left:auto;margin-right:auto;">bw</div>
     <h1>betwinner.com — отчёт</h1>
     <p>Доступ только по паролю</p>
     <input type="password" id="gate-pass" placeholder="Пароль" autocomplete="off">
@@ -268,8 +370,14 @@
 
 <div id="app">
   <header class="report-header">
-    <h1>betwinner.com — отчёт по веб-аналитике</h1>
-    <div class="sub">Обновлено: <b id="generated-at">—</b> · Источник: GA4 · Домен: betwinner.com (дефолт-домен, шаблон для остальных)</div>
+    <div class="header-left">
+      <div class="logo-mark">bw</div>
+      <div>
+        <h1>betwinner.com — веб-аналитика</h1>
+        <div class="sub">Обновлено: <b id="generated-at">—</b> · Источник: GA4 · дефолт-домен, шаблон для остальных</div>
+      </div>
+    </div>
+    <div class="period-badge"><span class="dot"></span><span id="period-label">с 17.08.2026</span></div>
   </header>
 
   <div class="tabs">
@@ -405,6 +513,31 @@ const fmtDur = sec => {
 const fmtDate = iso => new Date(iso + "T00:00:00").toLocaleDateString("ru-RU", { day: "2-digit", month: "short" });
 const PIE_COLORS = ["--series-1","--series-2","--series-3","--series-4","--series-5","--series-6","--series-7"];
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+// Counts a number up from 0 to target — the "wow, it's alive" first-load moment.
+// Respects prefers-reduced-motion by jumping straight to the final value.
+const REDUCE_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function animateCount(el, target, opts) {
+  opts = opts || {};
+  const fmt = opts.format || fmtInt;
+  if (REDUCE_MOTION || target === 0) { el.textContent = fmt(target); return; }
+  const duration = opts.duration || 900;
+  const delay = opts.delay || 0;
+  const stepMs = 16;
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  // setTimeout, not requestAnimationFrame — rAF only fires while the tab is
+  // actively compositing frames; setTimeout runs regardless, so the count-up
+  // can't silently stall on a backgrounded/non-visible tab.
+  setTimeout(() => {
+    const start = performance.now();
+    function tick() {
+      const t = Math.min((performance.now() - start) / duration, 1);
+      el.textContent = fmt(target * ease(t));
+      if (t < 1) setTimeout(tick, stepMs); else el.textContent = fmt(target);
+    }
+    tick();
+  }, delay);
+}
 function topNPlusOther(rows, n, valueKey) {
   const sorted = (rows||[]).slice().sort((a,b) => b[valueKey]-a[valueKey]);
   const top = sorted.slice(0, n);
@@ -429,15 +562,22 @@ function sectionTitle(parent, text, hint) {
 // the report stays to 5-9 headline items (dashboard design: "one decision per
 // screen", detail is a click away, not competing for attention).
 function collapsibleSection(parent, title, hint) {
-  const details = document.createElement("details"); details.className = "section-collapse";
-  const summary = document.createElement("summary");
+  const wrap = document.createElement("div"); wrap.className = "section-collapse";
+  const header = document.createElement("button"); header.className = "section-collapse-header"; header.type = "button";
+  header.setAttribute("aria-expanded", "false");
+  const chev = document.createElement("span"); chev.className = "chevron-ico"; chev.textContent = "▸";
   const t = document.createElement("span"); t.textContent = title;
-  summary.appendChild(t);
-  if (hint) { const h = document.createElement("span"); h.className = "tech-hint"; h.textContent = hint; summary.appendChild(h); }
-  details.appendChild(summary);
+  header.append(chev, t);
+  if (hint) { const h = document.createElement("span"); h.className = "tech-hint"; h.textContent = hint; header.appendChild(h); }
+  const animate = document.createElement("div"); animate.className = "section-collapse-animate";
   const body = document.createElement("div"); body.className = "section-collapse-body";
-  details.appendChild(body);
-  parent.appendChild(details);
+  animate.appendChild(body);
+  header.addEventListener("click", () => {
+    const open = wrap.classList.toggle("open");
+    header.setAttribute("aria-expanded", String(open));
+  });
+  wrap.append(header, animate);
+  parent.appendChild(wrap);
   return body;
 }
 
@@ -534,22 +674,34 @@ function buildVisualFunnel(steps) {
     svg.classList.add("vfunnel-svg");
     svg.setAttribute("preserveAspectRatio", "none");
     const poly = document.createElementNS(svgNS, "polygon");
+    poly.classList.add("vfunnel-poly");
+    poly.style.transitionDelay = (i * 90) + "ms";
     const tl = (trackW-topW)/2, tr = tl+topW, bl = (trackW-botW)/2, br = bl+botW;
     poly.setAttribute("points", `${tl},2 ${tr},2 ${br},${rowH-2} ${bl},${rowH-2}`);
-    poly.setAttribute("fill", cssVar(shades[Math.min(i, shades.length-1)]));
+    const gradId = "vfg" + i + Math.random().toString(36).slice(2,7);
+    const defs = document.createElementNS(svgNS, "defs");
+    const grad = document.createElementNS(svgNS, "linearGradient");
+    grad.setAttribute("id", gradId); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0"); grad.setAttribute("x2", "1"); grad.setAttribute("y2", "1");
+    const stop1 = document.createElementNS(svgNS, "stop"); stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", cssVar("--brand-a"));
+    const stop2 = document.createElementNS(svgNS, "stop"); stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", cssVar(shades[Math.min(i, shades.length-1)]));
+    grad.append(stop1, stop2); defs.appendChild(grad); svg.appendChild(defs);
+    poly.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(poly);
+    setTimeout(() => poly.classList.add("animate-in"), 20);
     const hit = document.createElementNS(svgNS, "rect");
     hit.setAttribute("x", 0); hit.setAttribute("y", 0); hit.setAttribute("width", trackW); hit.setAttribute("height", rowH);
     hit.setAttribute("fill", "transparent");
     svg.appendChild(hit);
 
     const meta = document.createElement("div"); meta.className = "vfunnel-meta";
-    const valSpan = document.createElement("span"); valSpan.className = "val"; valSpan.textContent = fmtInt(s.value);
+    const valSpan = document.createElement("span"); valSpan.className = "val"; valSpan.textContent = "0";
     meta.appendChild(valSpan);
+    animateCount(valSpan, s.value, { delay: i * 90 });
     let crText = "";
     if (i > 0 && steps[i-1].value > 0) {
       crText = fmtPct(s.value / steps[i-1].value * 100) + " от предыдущего шага";
       const crSpan = document.createElement("span"); crSpan.className = "cr"; crSpan.textContent = crText;
+      meta.appendChild(document.createElement("br"));
       meta.appendChild(crSpan);
     }
     row.append(label, svg, meta);
@@ -565,7 +717,10 @@ function buildVisualFunnel(steps) {
 // entries: [{label, value, tip}], optional entries[i].subEntries = [{label,value}] for expand-in-place
 function buildRankedBars(entries, opts) {
   opts = opts || {};
-  const max = entries.reduce((m,e) => Math.max(m, e.value), 0) || 1;
+  // sharedMax lets a nested/expanded sub-list stay on the SAME scale as its parent
+  // (a sub-bar must never look bigger than the #1 bar just because it's alone in a small list)
+  const localMax = entries.reduce((m,e) => Math.max(m, e.value), 0) || 1;
+  const max = opts.sharedMax || localMax;
   const wrap = document.createElement("div"); wrap.className = "bar-list";
   entries.forEach(e => {
     const hasSub = e.subEntries && e.subEntries.length;
@@ -574,9 +729,9 @@ function buildRankedBars(entries, opts) {
     const track = document.createElement("div"); track.className = "bar-track"; track.tabIndex = 0;
     const fill = document.createElement("div"); fill.className = "bar-fill";
     const pct = Math.max((e.value / max) * 100, e.value > 0 ? 2 : 0);
-    fill.style.width = pct + "%";
-    fill.style.background = cssVar("--series-1");
+    fill.style.setProperty("--target-w", pct + "%");
     track.appendChild(fill);
+    setTimeout(() => fill.classList.add("animate-in"), 20);
     const count = document.createElement("div"); count.className = "bar-count"; count.textContent = fmtInt(e.value);
     row.append(label, track, count);
     bindTip(track, e.label, e.tip || `${fmtInt(e.value)} сессий`);
@@ -584,7 +739,9 @@ function buildRankedBars(entries, opts) {
 
     if (hasSub) {
       const sub = document.createElement("div"); sub.className = "bar-sub-list";
-      sub.appendChild(buildRankedBars(e.subEntries, { compact: true }));
+      const subInner = document.createElement("div");
+      subInner.appendChild(buildRankedBars(e.subEntries, { compact: true, sharedMax: max }));
+      sub.appendChild(subInner);
       wrap.appendChild(sub);
       label.addEventListener("click", () => sub.classList.toggle("open"));
     }
@@ -746,15 +903,38 @@ function buildSourceGroupTable(channels, sources) {
 }
 
 /* ===================== KPI tile ===================== */
-function kpiTile(label, value, tipKey, dim) {
-  const tile = document.createElement("div"); tile.className = "kpi-tile"; tile.tabIndex = 0;
+const KPI_ICONS = {
+  sessions: '<path d="M3 12h4l2.5 7L13 4l2.5 8H21" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  totalUsers: '<circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15.5 20c.2-2.3 1.7-4.2 3.7-4.8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  averageSessionDuration: '<circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 7.5v5l3.2 2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  bounceRate: '<path d="M9.5 20H5.5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.5 16l4.5-4-4.5-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12H9.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>',
+  avgLoadTime: '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10.5H13l1-8.5z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>',
+};
+const KPI_ACCENTS = {
+  sessions: "--series-1", totalUsers: "--series-7", averageSessionDuration: "--series-3",
+  bounceRate: "--series-4", avgLoadTime: "--series-2",
+};
+
+function kpiTile(label, rawValue, tipKey, opts) {
+  opts = opts || {};
+  const tile = document.createElement("div"); tile.className = "kpi-tile reveal"; tile.tabIndex = 0;
+  tile.style.setProperty("--kpi-accent", cssVar(KPI_ACCENTS[tipKey] || "--brand-a"));
+  const top = document.createElement("div"); top.className = "kpi-tile-top";
   const lab = document.createElement("div"); lab.className = "kpi-label";
   const labText = document.createElement("span"); labText.textContent = label;
   const dot = document.createElement("span"); dot.className = "info-dot"; dot.textContent = "i";
   lab.append(labText, dot);
-  const val = document.createElement("div"); val.className = "kpi-value" + (dim ? " dim" : "");
-  val.textContent = value;
-  tile.append(lab, val);
+  const icon = document.createElement("div"); icon.className = "kpi-icon";
+  icon.innerHTML = `<svg viewBox="0 0 24 24">${KPI_ICONS[tipKey] || ""}</svg>`;
+  top.append(lab, icon);
+  const val = document.createElement("div"); val.className = "kpi-value" + (opts.dim ? " dim" : "");
+  tile.append(top, val);
+  if (opts.dim || rawValue == null) {
+    val.textContent = opts.staticText || String(rawValue);
+  } else {
+    val.textContent = "0";
+    animateCount(val, rawValue, { format: opts.format || fmtInt });
+  }
   if (KPI_TIPS[tipKey]) bindTip(tile, label, KPI_TIPS[tipKey]);
   return tile;
 }
@@ -767,11 +947,13 @@ function renderTab(containerId, p, deviceLabel) {
 
   // ---- KPI grid: 5 headline numbers, nothing more (executive dashboards: 5-9 max) ----
   const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
-  kpiGrid.appendChild(kpiTile("Сессии", fmtInt(totals.sessions), "sessions"));
-  kpiGrid.appendChild(kpiTile("Пользователи", fmtInt(totals.totalUsers), "totalUsers"));
-  kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fmtDur(totals.averageSessionDuration), "averageSessionDuration"));
-  kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate.toFixed(0) + "%", "bounceRate"));
-  kpiGrid.appendChild(kpiTile("Ср. время загрузки", avgLoadTimeMs && avgLoadTimeMs > 0 ? fmtInt(avgLoadTimeMs) + " мс" : "собираем данные", "avgLoadTime", !(avgLoadTimeMs > 0)));
+  kpiGrid.appendChild(kpiTile("Сессии", totals.sessions, "sessions"));
+  kpiGrid.appendChild(kpiTile("Пользователи", totals.totalUsers, "totalUsers"));
+  kpiGrid.appendChild(kpiTile("Ср. длительность сессии", totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
+  kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
+  kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0
+    ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => fmtInt(v) + " мс" })
+    : kpiTile("Ср. время загрузки", null, "avgLoadTime", { dim: true, staticText: "собираем данные" }));
   el.appendChild(kpiGrid);
 
   // ---- THE funnel: the one thing this report exists to answer ----
@@ -782,11 +964,11 @@ function renderTab(containerId, p, deviceLabel) {
     })),
   ];
   if (totals.sessions > 0) {
-    const wrap = document.createElement("div"); wrap.className = "funnel-highlight";
+    const wrap = document.createElement("div"); wrap.className = "funnel-highlight reveal";
     const t = document.createElement("div"); t.className = "funnel-highlight-title"; t.textContent = "Воронка регистрации";
     const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → старт регистрации → заполнение формы → отправка формы";
     wrap.append(t, h);
-    const card = document.createElement("div"); card.className = "card";
+    const card = document.createElement("div"); card.className = "card funnel-card";
     card.appendChild(buildVisualFunnel(funnelSteps));
     const note = document.createElement("div"); note.className = "funnel-scope-note";
     note.textContent = "Следующий шаг воронки — первый депозит (FTD) — пока не измеряем: нет доступа к платёжным данным. Добавим, как только появится техническая возможность.";
@@ -1048,6 +1230,13 @@ async function initReport() {
   renderTab("panel-combined", combined, "ПК + Моб суммарно.");
   renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
   renderTab("panel-mobile", mobile, "мобильная версия сайта");
+
+  // trigger the entrance transition (opacity/translateY -> visible) — must happen
+  // in a separate task after insertion, or the browser coalesces it with the
+  // initial style and no transition plays
+  setTimeout(() => {
+    document.querySelectorAll(".reveal:not(.revealed)").forEach(el => el.classList.add("revealed"));
+  }, 20);
 }
 
 /* ===================== tabs ===================== */

@@ -1296,6 +1296,14 @@ function renderTab(containerId, p, deviceLabel) {
     const trendCard = document.createElement("div"); trendCard.className = "card reveal";
     trendCard.appendChild(buildTrendChart(fTrend || [], "sessions", "Сессии"));
     belowFilterZone.appendChild(trendCard);
+
+    // kpiZone/belowFilterZone are rebuilt from scratch on every filter change, so
+    // freshly-created .reveal elements start at opacity:0 again each time — must
+    // re-trigger the entrance transition here, not just once on initial page load,
+    // or filtered content stays invisible (present in the DOM, but never revealed).
+    setTimeout(() => {
+      document.querySelectorAll(".reveal:not(.revealed)").forEach(el => el.classList.add("revealed"));
+    }, 20);
   }
 
   const initialFilters = { country: "all", channel: "all", os: "all" };

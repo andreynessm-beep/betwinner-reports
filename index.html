@@ -589,10 +589,6 @@ function renderTab(containerId, p, deviceLabel) {
   el.innerHTML = "";
   const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr } = p;
 
-  const banner = document.createElement("div"); banner.className = "note-banner";
-  banner.innerHTML = `<b>Данные раннего этапа.</b> Аналитика на betwinner.com запущена 17.08.2026. Свежие данные в GA4 дообрабатываются не мгновенно — сводные показатели вверху и разбивки по источникам/странам ниже иногда считаются с небольшим отставанием друг от друга, поэтому суммы по разбивкам могут временно чуть отличаться от общих цифр. Это стабилизируется в течение нескольких дней, никакие числа здесь не досчитаны и не исправлены вручную — то, что вернул GA4, то и показано.`;
-  el.appendChild(banner);
-
   // KPI grid
   const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
   kpiGrid.appendChild(kpiTile("Сессии", fmtInt(totals.sessions), "sessions"));

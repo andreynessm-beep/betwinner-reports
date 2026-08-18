@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>betwinner.com — отчёт по веб-аналитике</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --page: #f4f4f2;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --card-shadow: 0 1px 2px rgba(11,11,11,0.06), 0 1px 8px rgba(11,11,11,0.04);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-6: #008300;
+    --series-7: #4a3aa7;
+    --series-other: #898781;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --seq-250: #86b6ef;
+    --seq-350: #5598e7;
+    --seq-450: #2a78d6;
+    --seq-550: #1c5cab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 8px rgba(0,0,0,0.2);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+      --series-5: #d55181;
+      --series-6: #008300;
+      --series-7: #9085e9;
+      --series-other: #898781;
+      --good: #0ca30c;
+      --warning: #fab219;
+      --serious: #ec835a;
+      --critical: #e66767;
+      --seq-250: #86b6ef;
+      --seq-350: #5598e7;
+      --seq-450: #2a78d6;
+      --seq-550: #1c5cab;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  body { min-height: 100vh; }
+
+  /* ---------- password gate ---------- */
+  #gate {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--page);
+  }
+  #gate.hidden { display: none; }
+  .gate-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    padding: 32px 28px;
+    width: 100%; max-width: 340px;
+    text-align: center;
+  }
+  .gate-card h1 { font-size: 17px; margin: 0 0 6px; }
+  .gate-card p { font-size: 13px; color: var(--text-secondary); margin: 0 0 18px; }
+  .gate-card input {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--page); color: var(--text-primary);
+    margin-bottom: 10px;
+  }
+  .gate-card button {
+    width: 100%; padding: 10px 12px; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 8px;
+    background: var(--series-1); color: #fff; cursor: pointer;
+  }
+  .gate-card button:hover { opacity: 0.92; }
+  .gate-error { color: var(--critical); font-size: 12px; margin-top: 10px; min-height: 16px; }
+
+  /* ---------- app shell ---------- */
+  #app { display: none; max-width: 1080px; margin: 0 auto; padding: 28px 20px 60px; }
+  #app.visible { display: block; }
+
+  header.report-header { margin-bottom: 20px; }
+  header.report-header h1 { font-size: 22px; margin: 0 0 4px; }
+  header.report-header .sub { font-size: 13px; color: var(--text-secondary); }
+  header.report-header .sub b { color: var(--text-primary); font-weight: 600; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 20px; }
+  .tab-btn {
+    padding: 10px 16px; font-size: 14px; font-weight: 600;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--series-1); border-bottom-color: var(--series-1); }
+  .tab-btn:hover:not(.active) { color: var(--text-primary); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .note-banner {
+    background: var(--surface-1); border: 1px solid var(--border); border-left: 3px solid var(--warning);
+    border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--text-secondary);
+    margin-bottom: 20px; line-height: 1.5;
+  }
+  .note-banner b { color: var(--text-primary); }
+
+  .section-title { font-size: 15px; font-weight: 700; margin: 28px 0 12px; }
+  .section-title .hint { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 6px; }
+
+  /* ---------- KPI tiles ---------- */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .kpi-tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; box-shadow: var(--card-shadow); position: relative; cursor: default;
+  }
+  .kpi-tile .kpi-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .kpi-tile .kpi-value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .kpi-tile .kpi-value.dim { color: var(--text-muted); font-size: 15px; font-weight: 600; }
+  .info-dot {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--grid); color: var(--text-secondary);
+    font-size: 10px; font-weight: 700; cursor: help;
+  }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; box-shadow: var(--card-shadow);
+  }
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .chart-row { grid-template-columns: 1fr; } }
+
+  .legend { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: default; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .legend-label { color: var(--text-primary); flex: 1; }
+  .legend-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+  /* ---------- funnel ---------- */
+  .funnel { display: flex; flex-direction: column; gap: 10px; }
+  .funnel-step { display: grid; grid-template-columns: 160px 1fr 60px; align-items: center; gap: 10px; font-size: 12px; }
+  .funnel-bar-track { background: var(--grid); border-radius: 4px; height: 22px; overflow: hidden; }
+  .funnel-bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .funnel-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .funnel-cr { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+
+  /* ---------- events table ---------- */
+  table.events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.events-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
+    color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--grid);
+  }
+  table.events-table td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  table.events-table tr:last-child td { border-bottom: none; }
+  table.events-table tr.zero-row { opacity: 0.5; }
+  .event-name-cell { display: flex; align-items: center; gap: 6px; }
+  .event-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--text-muted); }
+  .event-count-cell, .event-users-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .event-desc { color: var(--text-secondary); }
+  .zero-tag { font-size: 10px; color: var(--text-muted); background: var(--grid); padding: 2px 6px; border-radius: 4px; }
+
+  /* ---------- tooltip (custom, follows pointer) ---------- */
+  #tt {
+    position: fixed; pointer-events: none; z-index: 200;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 12px; line-height: 1.4; padding: 8px 10px; border-radius: 6px;
+    max-width: 240px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    opacity: 0; transform: translateY(4px); transition: opacity .12s, transform .12s;
+  }
+  #tt.show { opacity: 1; transform: translateY(0); }
+  #tt .tt-title { font-weight: 700; margin-bottom: 2px; }
+
+  footer.report-footer { margin-top: 40px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--grid); padding-top: 14px; }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <h1>betwinner.com — отчёт</h1>
+    <p>Доступ только по паролю</p>
+    <input type="password" id="gate-pass" placeholder="Пароль" autocomplete="off">
+    <button id="gate-btn">Войти</button>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="report-header">
+    <h1>betwinner.com — отчёт по веб-аналитике</h1>
+    <div class="sub">Обновлено: <b id="generated-at">—</b> · Источник: GA4 (Realtime + стандартные отчёты) · Домен: betwinner.com (дефолт-домен, шаблон для остальных)</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="combined">Общее</button>
+    <button class="tab-btn" data-tab="desktop">ПК</button>
+    <button class="tab-btn" data-tab="mobile">Моб</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-combined"></div>
+  <div class="tab-panel" id="panel-desktop"></div>
+  <div class="tab-panel" id="panel-mobile"></div>
+
+  <footer class="report-footer">
+    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 17.08.2026 (день запуска аналитики на betwinner.com). Автор: Андрей, веб-аналитик.
+  </footer>
+</div>
+
+<div id="tt"></div>
+
+<script>
+/* ===================== password gate ===================== */
+const PASS_HASH = "979ca6be98edebc04c18e7b2b0ed7f321762a1e5f329d58ea4f0c57511468b32";
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function tryUnlock() {
+  const val = document.getElementById("gate-pass").value;
+  const hash = await sha256Hex(val);
+  if (hash === PASS_HASH) {
+    sessionStorage.setItem("bw_unlocked", "1");
+    document.getElementById("gate").classList.add("hidden");
+    document.getElementById("app").classList.add("visible");
+    initReport();
+  } else {
+    document.getElementById("gate-error").textContent = "Неверный пароль";
+  }
+}
+document.getElementById("gate-btn").addEventListener("click", tryUnlock);
+document.getElementById("gate-pass").addEventListener("keydown", e => { if (e.key === "Enter") tryUnlock(); });
+if (sessionStorage.getItem("bw_unlocked") === "1") {
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("app").classList.add("visible");
+}
+
+/* ===================== event glossary (plain language) ===================== */
+const GLOSSARY = {
+  page_view:              { label: "Просмотр страницы",            desc: "Клиент открыл и посмотрел страницу сайта." },
+  first_visit:            { label: "Первый визит",                  desc: "Человек оказался на сайте первый раз (по этому браузеру/устройству)." },
+  session_start:          { label: "Начало сессии",                 desc: "Началась новая сессия — визит на сайт." },
+  user_engagement:        { label: "Вовлечённость",                 desc: "Посетитель провёл на сайте достаточно времени и был активен, а не просто зашёл и сразу ушёл." },
+  scroll:                 { label: "Прокрутка страницы",            desc: "Посетитель прокрутил страницу вниз почти до конца (около 90%)." },
+  form_start:             { label: "Начало заполнения формы",       desc: "Клиент начал заполнять форму (например, регистрации)." },
+  bet_slip_view:          { label: "Просмотр купона ставок",        desc: "У клиента на экране появился купон для сбора ставок." },
+  cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить»." },
+  sign_up_start:           { label: "Старт регистрации",             desc: "Клиент нажал кнопку «Регистрация» — начал создавать аккаунт." },
+  sign_up_method_select:   { label: "Выбор способа регистрации",     desc: "Клиент выбрал способ регистрации — например, по телефону, почте или через соцсеть." },
+  sign_up_submit_click:    { label: "Отправка формы регистрации",    desc: "Клиент нажал финальную кнопку отправки формы регистрации." },
+  nav_click:               { label: "Клик по меню",                  desc: "Клик по пункту главного меню сайта." },
+  footer_click:            { label: "Клик по ссылке в подвале",      desc: "Клик по одной из обычных ссылок в самом низу сайта." },
+  promo_click:             { label: "Клик по промо-баннеру",         desc: "Клик по одному из рекламных баннеров на главной странице." },
+  search_use:              { label: "Использование поиска",          desc: "Клиент воспользовался поиском по сайту." },
+  settings_open:           { label: "Открытие настроек",             desc: "Клиент открыл настройки — смену языка или региона." },
+  switch_to_mobile_click:  { label: "Переключение на мобильную версию", desc: "Клиент вручную переключился на мобильную версию сайта." },
+  sidebar_click:           { label: "Клик по боковой панели",        desc: "Клик по разделу боковой панели — «Статистика», «Результаты» или «История ставок»." },
+  scroll_depth:            { label: "Глубина прокрутки",             desc: "Посетитель долистал страницу до отметки 25% / 50% / 75% / 90%." },
+  page_load_time:          { label: "Время загрузки страницы",       desc: "Сколько миллисекунд реально грузилась страница у посетителя." },
+  login_submit_click:      { label: "Отправка формы входа",          desc: "Клиент нажал кнопку «Войти» в форме входа в аккаунт." },
+  forgot_password_click:   { label: "Клик «Забыли пароль»",          desc: "Клиент нажал ссылку «Забыли пароль?»." },
+  login_social_click:      { label: "Вход через соцсеть",            desc: "Клиент нажал на вход через соцсеть (Telegram / ВК / ОК / Яндекс / Mail.Ru)." },
+  app_download_click:      { label: "Клик по скачиванию приложения", desc: "Клиент нажал на ссылку скачивания мобильного приложения (iOS или Android)." },
+  social_footer_click:     { label: "Клик по соцсети в подвале",     desc: "Клик по иконке соцсети внизу сайта (VK / Instagram / Facebook / X / Telegram)." },
+  chat_open:               { label: "Открытие чата поддержки",       desc: "Клиент нажал кнопку открытия окна чата поддержки." },
+};
+const KNOWN_EVENT_ORDER = Object.keys(GLOSSARY);
+
+const KPI_TIPS = {
+  sessions: "Сколько раз в сумме заходили на сайт за период (один человек может зайти несколько раз — это будет несколько сессий).",
+  totalUsers: "Сколько разных людей (устройств/браузеров) заходило на сайт за период.",
+  screenPageViews: "Сколько страниц в сумме было открыто всеми посетителями.",
+  averageSessionDuration: "Сколько в среднем длится один визит на сайт.",
+  bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие. День запуска — трафик ещё разгоняется, показатель нормализуется по мере роста данных.",
+  avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
+};
+
+/* ===================== tooltip helper ===================== */
+const ttEl = document.getElementById("tt");
+function showTip(x, y, title, body) {
+  ttEl.innerHTML = "";
+  const t = document.createElement("div"); t.className = "tt-title"; t.textContent = title;
+  ttEl.appendChild(t);
+  if (body) { const b = document.createElement("div"); b.textContent = body; ttEl.appendChild(b); }
+  ttEl.style.left = Math.min(x + 14, window.innerWidth - 260) + "px";
+  ttEl.style.top = (y + 14) + "px";
+  ttEl.classList.add("show");
+}
+function hideTip() { ttEl.classList.remove("show"); }
+function bindTip(el, title, body) {
+  el.addEventListener("pointermove", e => showTip(e.clientX, e.clientY, title, body));
+  el.addEventListener("pointerleave", hideTip);
+  el.addEventListener("focus", e => { const r = el.getBoundingClientRect(); showTip(r.left, r.bottom, title, body); });
+  el.addEventListener("blur", hideTip);
+}
+
+/* ===================== formatting ===================== */
+const fmtInt = n => new Intl.NumberFormat("ru-RU").format(Math.round(n));
+const fmtDur = sec => {
+  sec = Math.round(sec);
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m > 0 ? `${m} мин ${s} с` : `${s} с`;
+};
+const PIE_COLORS = ["--series-1","--series-2","--series-3","--series-4","--series-5","--series-6","--series-7"];
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+/* ===================== chart builders ===================== */
+function buildDonut(entries, totalLabel) {
+  // entries: [{name,label,value}], already sorted desc, capped w/ "Other"
+  const size = 200, r = 80, cx = size/2, cy = size/2, stroke = 28;
+  const total = entries.reduce((s,e) => s+e.value, 0) || 1;
+  let angle = -90;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.setAttribute("width", "100%");
+  svg.style.maxWidth = "220px";
+  svg.style.height = "auto";
+
+  entries.forEach((e, i) => {
+    const frac = e.value / total;
+    const a0 = angle, a1 = angle + frac*360;
+    angle = a1;
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    const toXY = a => [cx + r*Math.cos(a*Math.PI/180), cy + r*Math.sin(a*Math.PI/180)];
+    const [x0,y0] = toXY(a0), [x1,y1] = toXY(a1);
+    const path = document.createElementNS(svgNS, "path");
+    const d = frac >= 0.9995
+      ? `M ${cx-r} ${cy} A ${r} ${r} 0 1 1 ${cx+r-0.01} ${cy} A ${r} ${r} 0 1 1 ${cx-r} ${cy}`
+      : `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", e.color);
+    path.setAttribute("stroke-width", stroke);
+    path.style.cursor = "default";
+    path.addEventListener("pointermove", ev => showTip(ev.clientX, ev.clientY, e.label, `${fmtInt(e.value)} (${(frac*100).toFixed(1)}%)`));
+    path.addEventListener("pointerleave", hideTip);
+    svg.appendChild(path);
+  });
+
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex"; wrap.style.flexDirection = "column"; wrap.style.alignItems = "center";
+  wrap.appendChild(svg);
+  return wrap;
+}
+
+function buildLegend(entries) {
+  const wrap = document.createElement("div"); wrap.className = "legend";
+  entries.forEach(e => {
+    const row = document.createElement("div"); row.className = "legend-item"; row.tabIndex = 0;
+    const sw = document.createElement("span"); sw.className = "legend-swatch"; sw.style.background = e.color;
+    const lab = document.createElement("span"); lab.className = "legend-label"; lab.textContent = e.label;
+    const val = document.createElement("span"); val.className = "legend-value"; val.textContent = fmtInt(e.value);
+    row.append(sw, lab, val);
+    const glossaryDesc = GLOSSARY[e.name] ? GLOSSARY[e.name].desc : "";
+    bindTip(row, e.label, glossaryDesc);
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+function buildFunnel(steps) {
+  // steps: [{name,label,value}]
+  const max = steps[0] ? steps[0].value : 1;
+  const wrap = document.createElement("div"); wrap.className = "funnel";
+  steps.forEach((s, i) => {
+    const row = document.createElement("div"); row.className = "funnel-step";
+    const label = document.createElement("div"); label.textContent = s.label;
+    const track = document.createElement("div"); track.className = "funnel-bar-track";
+    const fill = document.createElement("div"); fill.className = "funnel-bar-fill";
+    const pct = max > 0 ? Math.max((s.value / max) * 100, s.value > 0 ? 3 : 0) : 0;
+    fill.style.width = pct + "%";
+    fill.style.background = `var(--seq-${450 - i*100 >= 250 ? 450 - i*100 : 250})`;
+    track.appendChild(fill);
+    const count = document.createElement("div"); count.className = "funnel-count";
+    let crText = "";
+    if (i > 0 && steps[i-1].value > 0) {
+      const cr = (s.value / steps[i-1].value * 100).toFixed(0);
+      crText = ` (${cr}%)`;
+    }
+    count.textContent = fmtInt(s.value);
+    const crSpan = document.createElement("span"); crSpan.className = "funnel-cr"; crSpan.textContent = crText;
+    count.appendChild(crSpan);
+    row.append(label, track, count);
+    const glossaryDesc = GLOSSARY[s.name] ? GLOSSARY[s.name].desc : "";
+    bindTip(track, s.label, glossaryDesc + (crText ? ` Конверсия от предыдущего шага: ${crText.replace(/[()]/g,"")}.` : ""));
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+/* ===================== KPI tile ===================== */
+function kpiTile(label, value, tipKey, dim) {
+  const tile = document.createElement("div"); tile.className = "kpi-tile"; tile.tabIndex = 0;
+  const lab = document.createElement("div"); lab.className = "kpi-label";
+  const labText = document.createElement("span"); labText.textContent = label;
+  const dot = document.createElement("span"); dot.className = "info-dot"; dot.textContent = "i";
+  lab.append(labText, dot);
+  const val = document.createElement("div"); val.className = "kpi-value" + (dim ? " dim" : "");
+  val.textContent = value;
+  tile.append(lab, val);
+  if (KPI_TIPS[tipKey]) bindTip(tile, label, KPI_TIPS[tipKey]);
+  return tile;
+}
+
+/* ===================== render one tab ===================== */
+function renderTab(containerId, totals, events, avgLoadTimeMs, deviceLabel) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+
+  if (totals.sessions < 50) {
+    const banner = document.createElement("div"); banner.className = "note-banner";
+    banner.innerHTML = `<b>Данные раннего этапа.</b> Аналитика на betwinner.com запущена 17.08.2026 — объём трафика пока небольшой, поэтому показатели (особенно доля отказов и время загрузки) будут стабилизироваться в течение первых дней. Разделы «ПК» и «Моб» показывают отдельные срезы одного и того же сайта.`;
+    el.appendChild(banner);
+  }
+
+  // KPI grid
+  const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
+  kpiGrid.appendChild(kpiTile("Сессии", fmtInt(totals.sessions), "sessions"));
+  kpiGrid.appendChild(kpiTile("Пользователи", fmtInt(totals.totalUsers), "totalUsers"));
+  kpiGrid.appendChild(kpiTile("Просмотры страниц", fmtInt(totals.screenPageViews), "screenPageViews"));
+  kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fmtDur(totals.averageSessionDuration), "averageSessionDuration"));
+  kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate.toFixed(0) + "%", "bounceRate"));
+  kpiGrid.appendChild(kpiTile("Ср. время загрузки", avgLoadTimeMs && avgLoadTimeMs > 0 ? fmtInt(avgLoadTimeMs) + " мс" : "собираем данные", "avgLoadTime", !(avgLoadTimeMs > 0)));
+  el.appendChild(kpiGrid);
+
+  // event composition donut + legend
+  const evEntries = KNOWN_EVENT_ORDER
+    .filter(name => events[name] && events[name].count > 0)
+    .map(name => ({ name, label: GLOSSARY[name].label, value: events[name].count }))
+    .sort((a,b) => b.value - a.value);
+  const top = evEntries.slice(0, 7);
+  const rest = evEntries.slice(7);
+  const restSum = rest.reduce((s,e) => s+e.value, 0);
+  const chartEntries = top.map((e,i) => ({...e, color: cssVar(PIE_COLORS[i])}));
+  if (restSum > 0) chartEntries.push({ name: "other", label: "Остальные события", value: restSum, color: cssVar("--series-other") });
+
+  if (chartEntries.length) {
+    const sectionTitle = document.createElement("div"); sectionTitle.className = "section-title";
+    sectionTitle.innerHTML = `Из чего складывается активность <span class="hint">наведите на событие или сегмент — появится объяснение</span>`;
+    el.appendChild(sectionTitle);
+    const card = document.createElement("div"); card.className = "card chart-row";
+    const left = document.createElement("div"); left.appendChild(buildDonut(chartEntries));
+    const right = document.createElement("div"); right.appendChild(buildLegend(chartEntries));
+    card.append(left, right);
+    el.appendChild(card);
+  }
+
+  // registration funnel
+  const funnelSteps = ["sign_up_start", "sign_up_method_select", "sign_up_submit_click"].map(name => ({
+    name, label: GLOSSARY[name].label, value: (events[name] && events[name].count) || 0,
+  }));
+  if (funnelSteps[0].value > 0) {
+    const sectionTitle = document.createElement("div"); sectionTitle.className = "section-title";
+    sectionTitle.innerHTML = `Воронка регистрации <span class="hint">от клика «Регистрация» до отправки формы</span>`;
+    el.appendChild(sectionTitle);
+    const card = document.createElement("div"); card.className = "card";
+    card.appendChild(buildFunnel(funnelSteps));
+    el.appendChild(card);
+  }
+
+  // full events table
+  const sectionTitle2 = document.createElement("div"); sectionTitle2.className = "section-title";
+  sectionTitle2.innerHTML = `Полный список отслеживаемых событий <span class="hint">${deviceLabel}</span>`;
+  el.appendChild(sectionTitle2);
+  const card2 = document.createElement("div"); card2.className = "card";
+  const table = document.createElement("table"); table.className = "events-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr><th>Событие</th><th>Что это значит</th><th style="text-align:right">Срабатываний</th><th style="text-align:right">Людей</th></tr>`;
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  const allNames = KNOWN_EVENT_ORDER.slice().sort((a,b) => {
+    const ca = (events[a] && events[a].count) || 0, cb = (events[b] && events[b].count) || 0;
+    return cb - ca;
+  });
+  allNames.forEach(name => {
+    const info = GLOSSARY[name];
+    const data = events[name];
+    const tr = document.createElement("tr");
+    if (!data || data.count === 0) tr.className = "zero-row";
+    const tdName = document.createElement("td");
+    const nameCell = document.createElement("div"); nameCell.className = "event-name-cell";
+    const nameSpan = document.createElement("span"); nameSpan.textContent = info.label;
+    nameCell.appendChild(nameSpan);
+    tdName.appendChild(nameCell);
+    const codeDiv = document.createElement("div"); codeDiv.className = "event-code"; codeDiv.textContent = name;
+    tdName.appendChild(codeDiv);
+    const tdDesc = document.createElement("td"); tdDesc.className = "event-desc"; tdDesc.textContent = info.desc;
+    const tdCount = document.createElement("td"); tdCount.className = "event-count-cell";
+    tdCount.textContent = data && data.count ? fmtInt(data.count) : "—";
+    if (!data || data.count === 0) {
+      const tag = document.createElement("span"); tag.className = "zero-tag"; tag.textContent = "пока не зафиксировано";
+      tdCount.appendChild(document.createElement("br")); tdCount.appendChild(tag);
+    }
+    const tdUsers = document.createElement("td"); tdUsers.className = "event-users-cell";
+    tdUsers.textContent = data && data.users ? fmtInt(data.users) : "—";
+    tr.append(tdName, tdDesc, tdCount, tdUsers);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  card2.appendChild(table);
+  el.appendChild(card2);
+}
+
+/* ===================== combine desktop+mobile ===================== */
+function combineProps(desktop, mobile) {
+  const totals = {
+    sessions: desktop.totals.sessions + mobile.totals.sessions,
+    totalUsers: desktop.totals.totalUsers + mobile.totals.totalUsers,
+    screenPageViews: desktop.totals.screenPageViews + mobile.totals.screenPageViews,
+    averageSessionDuration: (desktop.totals.averageSessionDuration * desktop.totals.sessions + mobile.totals.averageSessionDuration * mobile.totals.sessions) / Math.max(desktop.totals.sessions + mobile.totals.sessions, 1),
+    bounceRate: (desktop.totals.bounceRate * desktop.totals.sessions + mobile.totals.bounceRate * mobile.totals.sessions) / Math.max(desktop.totals.sessions + mobile.totals.sessions, 1),
+  };
+  const events = {};
+  [desktop.events, mobile.events].forEach(evObj => {
+    Object.entries(evObj).forEach(([name, v]) => {
+      if (!events[name]) events[name] = { count: 0, users: 0 };
+      events[name].count += v.count;
+      events[name].users += v.users; // approximation — same user across devices double-counted, see caveat below
+    });
+  });
+  const avgLoadTime = (desktop.avg_load_time_ms > 0 || mobile.avg_load_time_ms > 0)
+    ? ((desktop.avg_load_time_ms||0) * (desktop.events.page_load_time?.count||0) + (mobile.avg_load_time_ms||0) * (mobile.events.page_load_time?.count||0))
+      / Math.max((desktop.events.page_load_time?.count||0) + (mobile.events.page_load_time?.count||0), 1)
+    : 0;
+  return { totals, events, avg_load_time_ms: avgLoadTime };
+}
+
+/* ===================== init ===================== */
+async function initReport() {
+  const res = await fetch("data.json", { cache: "no-store" });
+  const data = await res.json();
+  document.getElementById("generated-at").textContent = new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
+
+  const desktop = data.properties.desktop, mobile = data.properties.mobile;
+  const combined = combineProps(desktop, mobile);
+
+  renderTab("panel-combined", combined.totals, combined.events, combined.avg_load_time_ms, "ПК + Моб суммарно. Пользователи считаются раздельно по устройствам (GA4 не объединяет ПК- и моб-визиты одного человека в разных свойствах), поэтому сумма может немного превышать реальное число уникальных людей.");
+  renderTab("panel-desktop", desktop.totals, desktop.events, desktop.avg_load_time_ms, "версия для настольных компьютеров");
+  renderTab("panel-mobile", mobile.totals, mobile.events, mobile.avg_load_time_ms, "мобильная версия сайта");
+}
+
+/* ===================== tabs ===================== */
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+if (sessionStorage.getItem("bw_unlocked") === "1") initReport();
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+{
+  "generated_at": "2026-08-18T12:02:37.573827Z",
+  "properties": {
+    "desktop": {
+      "property_id": "550083976",
+      "totals": {
+        "sessions": 81,
+        "totalUsers": 81,
+        "screenPageViews": 50,
+        "averageSessionDuration": 35.0,
+        "bounceRate": 100.0
+      },
+      "events": {
+        "page_view": {
+          "count": 50,
+          "users": 43
+        },
+        "page_load_time": {
+          "count": 41,
+          "users": 40
+        },
+        "first_visit": {
+          "count": 38,
+          "users": 38
+        },
+        "session_start": {
+          "count": 38,
+          "users": 38
+        },
+        "scroll": {
+          "count": 37,
+          "users": 36
+        },
+        "user_engagement": {
+          "count": 15,
+          "users": 15
+        },
+        "bet_slip_view": {
+          "count": 9,
+          "users": 9
+        },
+        "form_start": {
+          "count": 2,
+          "users": 2
+        },
+        "nav_click": {
+          "count": 1,
+          "users": 1
+        },
+        "sign_up_start": {
+          "count": 1,
+          "users": 1
+        }
+      },
+      "avg_load_time_ms": 0.0
+    },
+    "mobile": {
+      "property_id": "550176823",
+      "totals": {
+        "sessions": 1666,
+        "totalUsers": 1669,
+        "screenPageViews": 1204,
+        "averageSessionDuration": 21.0,
+        "bounceRate": 100.0
+      },
+      "events": {
+        "page_view": {
+          "count": 1204,
+          "users": 1129
+        },
+        "first_visit": {
+          "count": 1088,
+          "users": 1087
+        },
+        "session_start": {
+          "count": 1088,
+          "users": 1087
+        },
+        "page_load_time": {
+          "count": 1082,
+          "users": 1017
+        },
+        "user_engagement": {
+          "count": 153,
+          "users": 135
+        },
+        "bet_slip_view": {
+          "count": 23,
+          "users": 10
+        },
+        "sign_up_start": {
+          "count": 16,
+          "users": 14
+        }
+      },
+      "avg_load_time_ms": 0.0
+    }
+  }
+}

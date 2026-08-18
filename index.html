@@ -171,6 +171,40 @@
   .section-title .hint { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 6px; }
   .subsection-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: var(--text-muted); margin: 0 0 10px; }
 
+  /* ---------- filter bar ---------- */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 18px; align-items: center; }
+  .filter-field { position: relative; }
+  .filter-select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface-1); border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 8px 34px 8px 12px; font-size: 13px; font-weight: 600; color: var(--text-primary);
+    box-shadow: var(--card-shadow); min-width: 150px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .filter-select:hover { border-color: var(--brand-a); }
+  .filter-select:focus-visible { outline: 2px solid var(--brand-a); outline-offset: 1px; }
+  .filter-field::after {
+    content: "▾"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 11px; pointer-events: none;
+  }
+  .filter-field.active .filter-select { border-color: var(--brand-a); background: color-mix(in srgb, var(--brand-a) 5%, var(--surface-1)); }
+  .filter-clear {
+    font-size: 12px; font-weight: 700; color: var(--brand-a); background: none; border: none; cursor: pointer;
+    padding: 8px 6px; opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  .filter-clear.show { opacity: 1; pointer-events: auto; }
+  .filter-clear:hover { text-decoration: underline; }
+
+  .funnel-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .funnel-toggle-btn {
+    font-size: 12.5px; font-weight: 700; padding: 7px 14px; border-radius: 999px;
+    border: 1.5px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+    cursor: pointer; transition: all .15s;
+  }
+  .funnel-toggle-btn:hover { border-color: var(--brand-a); color: var(--text-primary); }
+  .funnel-toggle-btn.active { background: var(--brand-a); border-color: var(--brand-a); color: #fff; }
+
   /* ---------- KPI tiles ---------- */
   .kpi-grid {
     display: grid; grid-template-columns: repeat(4, 1fr);
@@ -1074,56 +1108,201 @@ function kpiTile(label, rawValue, tipKey, opts) {
   return tile;
 }
 
+/* ===================== filters (client-side, zero extra API calls) ===================== */
+// Every filter just sums matching rows out of the flat tables the Python
+// script already fetched — recompute is instant, no network round-trip.
+function filterSessionRows(rows, f) {
+  return (rows || []).filter(r =>
+    (f.country === "all" || r.country === f.country) &&
+    (f.channel === "all" || r.channel === f.channel) &&
+    (f.os === "all" || r.os === f.os)
+  );
+}
+function filterEventRows(rows, f, nvrMode) {
+  return (rows || []).filter(r =>
+    (f.country === "all" || r.country === f.country) &&
+    (f.channel === "all" || r.channel === f.channel) &&
+    (f.os === "all" || r.os === f.os) &&
+    (!nvrMode || nvrMode === "all" || r.nvr === nvrMode)
+  );
+}
+function computeFilteredTotals(sessionRows) {
+  let sessions=0, totalUsers=0, screenPageViews=0, bounceSessions=0, engagedSessions=0, engagementDurationSec=0;
+  sessionRows.forEach(r => {
+    sessions += r.sessions; totalUsers += r.totalUsers; screenPageViews += r.screenPageViews;
+    bounceSessions += r.bounceSessions; engagedSessions += r.engagedSessions; engagementDurationSec += r.engagementDurationSec || 0;
+  });
+  return {
+    sessions, totalUsers, screenPageViews,
+    bounceRate: sessions > 0 ? bounceSessions / sessions * 100 : 0,
+    engagementRate: sessions > 0 ? engagedSessions / sessions * 100 : 0,
+    averageSessionDuration: sessions > 0 ? engagementDurationSec / sessions : 0,
+  };
+}
+function computeFilteredEvents(eventRows) {
+  const events = {};
+  eventRows.forEach(r => {
+    if (!events[r.event]) events[r.event] = { count: 0, users: 0 };
+    events[r.event].count += r.count; events[r.event].users += r.users;
+  });
+  return events;
+}
+function computeFilteredTrend(sessionRows) {
+  const map = new Map();
+  sessionRows.forEach(r => {
+    if (!map.has(r.date)) map.set(r.date, { date: r.date, sessions: 0, totalUsers: 0, screenPageViews: 0 });
+    const acc = map.get(r.date);
+    acc.sessions += r.sessions; acc.totalUsers += r.totalUsers; acc.screenPageViews += r.screenPageViews;
+  });
+  return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+const OS_LABELS = { "Windows": "Windows", "Macintosh": "macOS", "iOS": "iOS", "Android": "Android", "Linux": "Linux", "Chrome OS": "Chrome OS", "Tizen": "Tizen" };
+function osLabel(name) { return OS_LABELS[name] || name; }
+
+function uniqueSorted(rows, field, labelFn) {
+  const totals = new Map();
+  rows.forEach(r => totals.set(r[field], (totals.get(r[field]) || 0) + r.sessions));
+  return Array.from(totals.entries())
+    .sort((a,b) => b[1] - a[1])
+    .map(([value]) => ({ value, label: labelFn ? labelFn(value) : value }));
+}
+
+function buildFilterBar(sessionRows, onChange) {
+  const bar = document.createElement("div"); bar.className = "filter-bar";
+  const filters = { country: "all", channel: "all", os: "all" };
+
+  const fields = [
+    { key: "country", label: "Все страны", options: uniqueSorted(sessionRows, "country") },
+    { key: "channel", label: "Все источники", options: uniqueSorted(sessionRows, "channel", channelLabel) },
+    { key: "os", label: "Все устройства", options: uniqueSorted(sessionRows, "os", osLabel) },
+  ];
+
+  const clearBtn = document.createElement("button"); clearBtn.className = "filter-clear"; clearBtn.type = "button";
+  clearBtn.textContent = "Сбросить фильтры";
+
+  fields.forEach(f => {
+    const field = document.createElement("div"); field.className = "filter-field";
+    const select = document.createElement("select"); select.className = "filter-select";
+    const allOpt = document.createElement("option"); allOpt.value = "all"; allOpt.textContent = f.label;
+    select.appendChild(allOpt);
+    f.options.forEach(o => {
+      const opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label;
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", () => {
+      filters[f.key] = select.value;
+      field.classList.toggle("active", select.value !== "all");
+      clearBtn.classList.toggle("show", Object.values(filters).some(v => v !== "all"));
+      onChange(filters);
+    });
+    field.appendChild(select);
+    bar.appendChild(field);
+  });
+
+  clearBtn.addEventListener("click", () => {
+    filters.country = "all"; filters.channel = "all"; filters.os = "all";
+    bar.querySelectorAll("select").forEach(s => s.value = "all");
+    bar.querySelectorAll(".filter-field").forEach(f => f.classList.remove("active"));
+    clearBtn.classList.remove("show");
+    onChange(filters);
+  });
+  bar.appendChild(clearBtn);
+
+  return { el: bar, filters };
+}
+
 /* ===================== render one tab ===================== */
 function renderTab(containerId, p, deviceLabel) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, event_details: eventDetails } = p;
+  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, event_details: eventDetails, filter_session_rows: sessionRows, filter_event_rows: eventRows } = p;
+  const hasFlat = sessionRows && sessionRows.length && eventRows;
 
-  // ---- THE funnel: the one thing this report exists to answer ----
-  const funnelSteps = [
-    { name: "__visit", label: "Визит на сайт", value: totals.sessions, desc: "Все сессии за период." },
-    ...["sign_up_start", "form_start", "sign_up_submit_click"].map(name => ({
-      name, label: GLOSSARY[name].label, value: (events[name] && events[name].count) || 0, desc: GLOSSARY[name].desc,
-    })),
-  ];
-  // Both measured from the same starting point (клик «Регистрация» = sign_up_start)
-  // so the two cards answer two different questions about the same group of people,
-  // not two overlapping slices of the funnel.
-  const signupRate = funnelSteps[1].value > 0 ? funnelSteps[2].value / funnelSteps[1].value * 100 : 0;
-  const completionRate = funnelSteps[1].value > 0 ? funnelSteps[3].value / funnelSteps[1].value * 100 : 0;
+  const kpiZone = document.createElement("div");
+  const belowFilterZone = document.createElement("div");
+  let funnelMode = "all"; // funnel-only toggle: "all" visitors vs "new" visitors
 
-  // ---- KPI grid: headline numbers, including the funnel's key conversions
-  // (dashboard design: 5-9 max, but conversion is the whole point of the page) ----
-  const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
-  kpiGrid.appendChild(kpiTile("Сессии", totals.sessions, "sessions"));
-  kpiGrid.appendChild(kpiTile("Пользователи", totals.totalUsers, "totalUsers"));
-  kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v) }));
-  kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v) }));
-  kpiGrid.appendChild(kpiTile("Ср. длительность сессии", totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
-  kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
-  kpiGrid.appendChild(kpiTile("Engagement rate", totals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
-  kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0
-    ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => (v/1000).toFixed(1).replace(".", ",") + " с" })
-    : kpiTile("Ср. время загрузки", null, "avgLoadTime", { dim: true, staticText: "собираем данные" }));
-  el.appendChild(kpiGrid);
+  function renderDynamic(filters) {
+    const fSessionRows = hasFlat ? filterSessionRows(sessionRows, filters) : null;
+    const fTotals = hasFlat ? computeFilteredTotals(fSessionRows) : totals;
+    const fEvents = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, funnelMode)) : events;
+    const fTrend = hasFlat ? computeFilteredTrend(fSessionRows) : trend;
 
-  if (totals.sessions > 0) {
-    const wrap = document.createElement("div"); wrap.className = "funnel-highlight reveal";
-    const t = document.createElement("div"); t.className = "funnel-highlight-title"; t.textContent = "Воронка регистрации";
-    const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → старт регистрации → заполнение формы → отправка формы";
-    wrap.append(t, h);
-    const card = document.createElement("div"); card.className = "card funnel-card";
-    card.appendChild(buildVisualFunnel(funnelSteps));
-    wrap.appendChild(card);
-    el.appendChild(wrap);
+    // ---- THE funnel: the one thing this report exists to answer ----
+    const funnelSteps = [
+      { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
+      ...["sign_up_start", "form_start", "sign_up_submit_click"].map(name => ({
+        name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
+      })),
+    ];
+    // Both measured from the same starting point (клик «Регистрация» = sign_up_start)
+    // so the two cards answer two different questions about the same group of people,
+    // not two overlapping slices of the funnel.
+    const signupRate = funnelSteps[1].value > 0 ? funnelSteps[2].value / funnelSteps[1].value * 100 : 0;
+    const completionRate = funnelSteps[1].value > 0 ? funnelSteps[3].value / funnelSteps[1].value * 100 : 0;
+
+    // ---- KPI grid: headline numbers, including the funnel's key conversions
+    // (dashboard design: 5-9 max, but conversion is the whole point of the page) ----
+    kpiZone.innerHTML = "";
+    const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
+    kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
+    kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
+    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v) }));
+    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v) }));
+    kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
+    kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
+    kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
+    kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0
+      ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => (v/1000).toFixed(1).replace(".", ",") + " с" })
+      : kpiTile("Ср. время загрузки", null, "avgLoadTime", { dim: true, staticText: "собираем данные" }));
+    kpiZone.appendChild(kpiGrid);
+
+    belowFilterZone.innerHTML = "";
+    if (funnelSteps[0].value > 0) {
+      const wrap = document.createElement("div"); wrap.className = "funnel-highlight reveal";
+      const t = document.createElement("div"); t.className = "funnel-highlight-title"; t.textContent = "Воронка регистрации";
+      const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → старт регистрации → заполнение формы → отправка формы";
+      wrap.append(t, h);
+
+      if (hasFlat) {
+        const toggle = document.createElement("div"); toggle.className = "funnel-toggle";
+        const mkBtn = (mode, label, tip) => {
+          const b = document.createElement("button"); b.type = "button";
+          b.className = "funnel-toggle-btn" + (funnelMode === mode ? " active" : "");
+          b.textContent = label;
+          bindTip(b, label, tip);
+          b.addEventListener("click", () => { if (funnelMode !== mode) { funnelMode = mode; renderDynamic(filters); } });
+          return b;
+        };
+        toggle.appendChild(mkBtn("all", "Все посетители", "Воронка по всем визитам — казино, где многие заходят не регистрироваться, а сразу играть под своим аккаунтом, так что этот срез размывает конверсию в регистрацию."));
+        toggle.appendChild(mkBtn("new", "Только новые", "Воронка только по тем, кто на сайте впервые — честная конверсия именно в регистрацию, без вернувшихся игроков, которым регистрация не нужна."));
+        wrap.appendChild(toggle);
+      }
+
+      const card = document.createElement("div"); card.className = "card funnel-card";
+      card.appendChild(buildVisualFunnel(funnelSteps));
+      wrap.appendChild(card);
+      belowFilterZone.appendChild(wrap);
+    }
+
+    // ---- traffic trend (also filter-reactive) ----
+    sectionTitle(belowFilterZone, "Динамика трафика по дням", "сессии в день");
+    const trendCard = document.createElement("div"); trendCard.className = "card reveal";
+    trendCard.appendChild(buildTrendChart(fTrend || [], "sessions", "Сессии"));
+    belowFilterZone.appendChild(trendCard);
   }
 
-  // ---- everything else: one click away, not competing for attention ----
-  sectionTitle(el, "Динамика трафика по дням", "сессии в день");
-  const trendCard = document.createElement("div"); trendCard.className = "card reveal";
-  trendCard.appendChild(buildTrendChart(trend || [], "sessions", "Сессии"));
-  el.appendChild(trendCard);
+  const initialFilters = { country: "all", channel: "all", os: "all" };
+  renderDynamic(initialFilters);
+  el.appendChild(kpiZone);
+
+  if (hasFlat) {
+    const { el: barEl, filters: liveFilters } = buildFilterBar(sessionRows, (newFilters) => renderDynamic(newFilters));
+    el.appendChild(barEl);
+  }
+
+  el.appendChild(belowFilterZone);
 
   const srcBody = collapsibleSection(el, "Источники трафика", "по каналу и конкретному источнику");
   const srcCard = document.createElement("div"); srcCard.className = "card";
@@ -1360,6 +1539,8 @@ function combineProps(desktop, mobile) {
       unclassified: (desktop.new_vs_returning?.unclassified||0) + (mobile.new_vs_returning?.unclassified||0),
     },
     event_details: mergeEventDetails(desktop.event_details, mobile.event_details),
+    filter_session_rows: [...(desktop.filter_session_rows||[]), ...(mobile.filter_session_rows||[])],
+    filter_event_rows: [...(desktop.filter_event_rows||[]), ...(mobile.filter_event_rows||[])],
   };
 }
 

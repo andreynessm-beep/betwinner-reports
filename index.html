@@ -791,27 +791,50 @@ function buildTrendChart(points, key, label) {
     svg.appendChild(t);
   });
 
+  const gradId = "trendArea" + Math.random().toString(36).slice(2,7);
+  const defs = document.createElementNS(svgNS, "defs");
+  const grad = document.createElementNS(svgNS, "linearGradient");
+  grad.setAttribute("id", gradId); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0"); grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
+  const gs1 = document.createElementNS(svgNS, "stop"); gs1.setAttribute("offset", "0%"); gs1.setAttribute("stop-color", cssVar("--brand-a")); gs1.setAttribute("stop-opacity", "0.32");
+  const gs2 = document.createElementNS(svgNS, "stop"); gs2.setAttribute("offset", "100%"); gs2.setAttribute("stop-color", cssVar("--brand-a")); gs2.setAttribute("stop-opacity", "0");
+  grad.append(gs1, gs2); defs.appendChild(grad); svg.appendChild(defs);
+
   const areaPts = points.map((p,i) => `${xFor(i)},${yFor(p[key])}`).join(" L ");
   const area = document.createElementNS(svgNS, "path");
   area.setAttribute("d", `M ${xFor(0)},${yFor(0)} L ${areaPts} L ${xFor(points.length-1)},${yFor(0)} Z`);
-  area.setAttribute("fill", cssVar("--seq-250")); area.setAttribute("opacity", "0.35");
+  area.setAttribute("fill", `url(#${gradId})`);
+  area.style.opacity = "0"; area.style.transition = "opacity .6s ease .4s";
   svg.appendChild(area);
+  setTimeout(() => { area.style.opacity = "1"; }, 20);
 
   const line = document.createElementNS(svgNS, "path");
   line.setAttribute("d", `M ${areaPts}`);
   line.setAttribute("fill", "none");
   line.setAttribute("stroke", cssVar("--series-1"));
-  line.setAttribute("stroke-width", "2.5");
+  line.setAttribute("stroke-width", "3");
   line.setAttribute("stroke-linejoin", "round");
+  line.setAttribute("stroke-linecap", "round");
   svg.appendChild(line);
+  // "drawing" animation: dash the full line length, then transition the
+  // offset to 0 — a transition, not a CSS animation, so it can't stall
+  const len = line.getTotalLength();
+  line.style.strokeDasharray = String(len);
+  line.style.strokeDashoffset = String(len);
+  line.style.transition = "stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)";
+  setTimeout(() => { line.style.strokeDashoffset = "0"; }, 20);
 
   const labelEvery = Math.ceil(points.length / 8);
   points.forEach((p, i) => {
     const cx = xFor(i), cy = yFor(p[key]);
     const dot = document.createElementNS(svgNS, "circle");
-    dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", "3.5");
+    dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", "4");
     dot.setAttribute("fill", cssVar("--series-1"));
+    dot.setAttribute("stroke", cssVar("--surface-1")); dot.setAttribute("stroke-width", "1.5");
+    dot.style.opacity = "0"; dot.style.transformOrigin = `${cx}px ${cy}px`; dot.style.transform = "scale(.3)";
+    dot.style.transition = `opacity .3s ease, transform .3s cubic-bezier(.3,1.5,.5,1)`;
+    dot.style.transitionDelay = (0.15 + i * (1.0 / points.length)) + "s";
     svg.appendChild(dot);
+    setTimeout(() => { dot.style.opacity = "1"; dot.style.transform = "scale(1)"; }, 20);
     const hit = document.createElementNS(svgNS, "circle");
     hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", "14");
     hit.setAttribute("fill", "transparent"); hit.style.cursor = "default";
@@ -983,6 +1006,12 @@ function renderTab(containerId, p, deviceLabel) {
 
   // ---- everything else: one click away, not competing for attention ----
   sectionTitle(el, "Динамика трафика по дням", "сессии в день");
+  if (DEMO_MODE) {
+    const demoNote = document.createElement("div"); demoNote.className = "note-banner small";
+    demoNote.style.borderLeftColor = "var(--critical)";
+    demoNote.innerHTML = "<b>⚠ ДЕМО-ДАННЫЕ.</b> Это тестовые цифры только для проверки дизайна графика — не реальная статистика betwinner.com. Уберётся после подтверждения.";
+    el.appendChild(demoNote);
+  }
   const trendCard = document.createElement("div"); trendCard.className = "card reveal";
   trendCard.appendChild(buildTrendChart(trend || [], "sessions", "Сессии"));
   el.appendChild(trendCard);
@@ -1225,10 +1254,12 @@ function combineProps(desktop, mobile) {
 }
 
 /* ===================== init ===================== */
+let DEMO_MODE = false;
 async function initReport() {
   const res = await fetch("data.json", { cache: "no-store" });
   const data = await res.json();
   document.getElementById("generated-at").textContent = new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
+  DEMO_MODE = !!data.demo_mode;
 
   const desktop = data.properties.desktop, mobile = data.properties.mobile;
   const combined = combineProps(desktop, mobile);

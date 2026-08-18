@@ -99,10 +99,88 @@
       "avg_load_time_ms": 562.0,
       "trend": [
         {
+          "date": "2026-08-06",
+          "sessions": 88,
+          "totalUsers": 87,
+          "screenPageViews": 70
+        },
+        {
+          "date": "2026-08-07",
+          "sessions": 91,
+          "totalUsers": 90,
+          "screenPageViews": 84
+        },
+        {
+          "date": "2026-08-08",
+          "sessions": 98,
+          "totalUsers": 95,
+          "screenPageViews": 75
+        },
+        {
+          "date": "2026-08-09",
+          "sessions": 94,
+          "totalUsers": 92,
+          "screenPageViews": 83
+        },
+        {
+          "date": "2026-08-10",
+          "sessions": 114,
+          "totalUsers": 111,
+          "screenPageViews": 98
+        },
+        {
+          "date": "2026-08-11",
+          "sessions": 108,
+          "totalUsers": 107,
+          "screenPageViews": 84
+        },
+        {
+          "date": "2026-08-12",
+          "sessions": 121,
+          "totalUsers": 117,
+          "screenPageViews": 113
+        },
+        {
+          "date": "2026-08-13",
+          "sessions": 119,
+          "totalUsers": 116,
+          "screenPageViews": 97
+        },
+        {
+          "date": "2026-08-14",
+          "sessions": 130,
+          "totalUsers": 129,
+          "screenPageViews": 116
+        },
+        {
+          "date": "2026-08-15",
+          "sessions": 140,
+          "totalUsers": 136,
+          "screenPageViews": 113
+        },
+        {
+          "date": "2026-08-16",
+          "sessions": 147,
+          "totalUsers": 145,
+          "screenPageViews": 130
+        },
+        {
+          "date": "2026-08-17",
+          "sessions": 145,
+          "totalUsers": 144,
+          "screenPageViews": 137
+        },
+        {
           "date": "2026-08-18",
-          "sessions": 871,
-          "totalUsers": 866,
-          "screenPageViews": 1155
+          "sessions": 152,
+          "totalUsers": 149,
+          "screenPageViews": 127
+        },
+        {
+          "date": "2026-08-19",
+          "sessions": 165,
+          "totalUsers": 161,
+          "screenPageViews": 130
         }
       ],
       "channels": [
@@ -542,10 +620,88 @@
       "avg_load_time_ms": 695.0,
       "trend": [
         {
+          "date": "2026-08-06",
+          "sessions": 878,
+          "totalUsers": 867,
+          "screenPageViews": 688
+        },
+        {
+          "date": "2026-08-07",
+          "sessions": 961,
+          "totalUsers": 945,
+          "screenPageViews": 772
+        },
+        {
+          "date": "2026-08-08",
+          "sessions": 1140,
+          "totalUsers": 1113,
+          "screenPageViews": 928
+        },
+        {
+          "date": "2026-08-09",
+          "sessions": 1084,
+          "totalUsers": 1058,
+          "screenPageViews": 819
+        },
+        {
+          "date": "2026-08-10",
+          "sessions": 1183,
+          "totalUsers": 1149,
+          "screenPageViews": 1103
+        },
+        {
+          "date": "2026-08-11",
+          "sessions": 1364,
+          "totalUsers": 1335,
+          "screenPageViews": 1201
+        },
+        {
+          "date": "2026-08-12",
+          "sessions": 1401,
+          "totalUsers": 1378,
+          "screenPageViews": 1124
+        },
+        {
+          "date": "2026-08-13",
+          "sessions": 1426,
+          "totalUsers": 1406,
+          "screenPageViews": 1282
+        },
+        {
+          "date": "2026-08-14",
+          "sessions": 1495,
+          "totalUsers": 1468,
+          "screenPageViews": 1186
+        },
+        {
+          "date": "2026-08-15",
+          "sessions": 1597,
+          "totalUsers": 1572,
+          "screenPageViews": 1439
+        },
+        {
+          "date": "2026-08-16",
+          "sessions": 1662,
+          "totalUsers": 1643,
+          "screenPageViews": 1509
+        },
+        {
+          "date": "2026-08-17",
+          "sessions": 1694,
+          "totalUsers": 1662,
+          "screenPageViews": 1472
+        },
+        {
           "date": "2026-08-18",
-          "sessions": 6767,
-          "totalUsers": 6824,
-          "screenPageViews": 5794
+          "sessions": 1877,
+          "totalUsers": 1875,
+          "screenPageViews": 1730
+        },
+        {
+          "date": "2026-08-19",
+          "sessions": 1843,
+          "totalUsers": 1825,
+          "screenPageViews": 1580
         }
       ],
       "channels": [
@@ -1048,5 +1204,6 @@
         ]
       }
     }
-  }
+  },
+  "demo_mode": true
 }

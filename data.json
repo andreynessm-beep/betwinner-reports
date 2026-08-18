@@ -1,63 +1,64 @@
 {
-  "generated_at": "2026-08-18T14:44:04.262267+00:00",
+  "generated_at": "2026-08-18T15:23:36.441688+00:00",
   "properties": {
     "desktop": {
       "property_id": "550083976",
       "totals": {
-        "sessions": 3059,
-        "totalUsers": 2926,
-        "screenPageViews": 5649,
-        "averageSessionDuration": 365.8,
-        "bounceRate": 99.9
+        "sessions": 3618,
+        "totalUsers": 3435,
+        "screenPageViews": 7152,
+        "averageSessionDuration": 420.3,
+        "bounceRate": 99.9,
+        "engagementRate": 0.1
       },
       "events": {
         "page_view": {
-          "count": 5649,
-          "users": 2409
+          "count": 7152,
+          "users": 2858
         },
         "page_load_time": {
-          "count": 2920,
-          "users": 2343
+          "count": 3566,
+          "users": 2799
         },
         "session_start": {
-          "count": 2412,
-          "users": 2326
+          "count": 2884,
+          "users": 2755
         },
         "first_visit": {
-          "count": 2310,
-          "users": 2307
+          "count": 2744,
+          "users": 2739
         },
         "scroll": {
-          "count": 1209,
-          "users": 1003
+          "count": 1454,
+          "users": 1197
         },
         "user_engagement": {
-          "count": 1025,
-          "users": 790
+          "count": 1291,
+          "users": 965
         },
         "bet_slip_view": {
-          "count": 641,
-          "users": 413
+          "count": 793,
+          "users": 500
         },
         "search_use": {
-          "count": 86,
-          "users": 25
+          "count": 135,
+          "users": 43
         },
         "nav_click": {
-          "count": 71,
-          "users": 40
+          "count": 89,
+          "users": 49
         },
         "form_start": {
-          "count": 62,
-          "users": 62
+          "count": 72,
+          "users": 72
         },
         "login_submit_click": {
-          "count": 27,
-          "users": 23
+          "count": 33,
+          "users": 28
         },
         "sign_up_start": {
-          "count": 17,
-          "users": 14
+          "count": 20,
+          "users": 17
         },
         "promo_click": {
           "count": 7,
@@ -104,40 +105,40 @@
           "users": 1
         }
       },
-      "avg_load_time_ms": 2157.0,
+      "avg_load_time_ms": 2295.0,
       "trend": [
         {
           "date": "2026-08-18",
-          "sessions": 3059,
-          "totalUsers": 2926,
-          "screenPageViews": 5649
+          "sessions": 3618,
+          "totalUsers": 3435,
+          "screenPageViews": 7152
         }
       ],
       "channels": [
         {
           "name": "Direct",
-          "sessions": 1976.0,
-          "totalUsers": 1935.0
+          "sessions": 2354.0,
+          "totalUsers": 2287.0
         },
         {
           "name": "Unassigned",
-          "sessions": 1936.0,
-          "totalUsers": 1868.0
+          "sessions": 2308.0,
+          "totalUsers": 2209.0
         },
         {
           "name": "Referral",
-          "sessions": 381.0,
-          "totalUsers": 358.0
+          "sessions": 460.0,
+          "totalUsers": 424.0
         },
         {
           "name": "Organic Search",
-          "sessions": 60.0,
-          "totalUsers": 54.0
+          "sessions": 67.0,
+          "totalUsers": 60.0
         },
         {
           "name": "Cross-network",
-          "sessions": 3.0,
-          "totalUsers": 3.0
+          "sessions": 13.0,
+          "totalUsers": 13.0
         },
         {
           "name": "Organic Social",
@@ -159,90 +160,114 @@
         {
           "channel": "Direct",
           "name": "(direct) / (none)",
-          "sessions": 1976,
-          "totalUsers": 1935
+          "sessions": 2354,
+          "totalUsers": 2287
         },
         {
           "channel": "Unassigned",
           "name": "(not set)",
-          "sessions": 1936,
-          "totalUsers": 1868
+          "sessions": 2308,
+          "totalUsers": 2209
         },
         {
           "channel": "Referral",
           "name": "cln9vhvfo2.top / referral",
-          "sessions": 195,
-          "totalUsers": 181
+          "sessions": 233,
+          "totalUsers": 210
         },
         {
           "channel": "Referral",
           "name": "bvwdcuyr2ogy.top / referral",
-          "sessions": 61,
+          "sessions": 69,
+          "totalUsers": 68
+        },
+        {
+          "channel": "Referral",
+          "name": "gbaodm2hp.com / referral",
+          "sessions": 62,
           "totalUsers": 60
         },
         {
           "channel": "Organic Search",
           "name": "google / organic",
-          "sessions": 53,
-          "totalUsers": 47
-        },
-        {
-          "channel": "Referral",
-          "name": "gbaodm2hp.com / referral",
-          "sessions": 52,
-          "totalUsers": 51
+          "sessions": 59,
+          "totalUsers": 52
         },
         {
           "channel": "Referral",
           "name": "bwredir.com / referral",
-          "sessions": 20,
-          "totalUsers": 18
+          "sessions": 24,
+          "totalUsers": 22
         },
         {
           "channel": "Referral",
           "name": "bvlwzc.top / referral",
-          "sessions": 11,
-          "totalUsers": 10
+          "sessions": 15,
+          "totalUsers": 14
+        },
+        {
+          "channel": "Cross-network",
+          "name": "(data not available)",
+          "sessions": 13,
+          "totalUsers": 13
         },
         {
           "channel": "Referral",
           "name": "mqzegh.top / referral",
+          "sessions": 10,
+          "totalUsers": 10
+        },
+        {
+          "channel": "Referral",
+          "name": "supwiki.office.lan / referral",
           "sessions": 7,
           "totalUsers": 7
         },
         {
           "channel": "Referral",
           "name": "bwref-l4ftkntp.com / referral",
-          "sessions": 5,
-          "totalUsers": 5
-        },
-        {
-          "channel": "Referral",
-          "name": "supwiki.office.lan / referral",
-          "sessions": 5,
-          "totalUsers": 5
-        },
-        {
-          "channel": "Cross-network",
-          "name": "(data not available)",
-          "sessions": 3,
-          "totalUsers": 3
+          "sessions": 6,
+          "totalUsers": 6
         },
         {
           "channel": "Organic Search",
           "name": "ntp.msn.com / referral",
-          "sessions": 3,
-          "totalUsers": 3
+          "sessions": 4,
+          "totalUsers": 4
         },
         {
           "channel": "Referral",
           "name": "bwref-l3s32hum.com / referral",
+          "sessions": 4,
+          "totalUsers": 3
+        },
+        {
+          "channel": "Referral",
+          "name": "4phntam.top / referral",
           "sessions": 3,
           "totalUsers": 3
         },
         {
           "channel": "Referral",
+          "name": "bw-pay-gw.com / referral",
+          "sessions": 3,
+          "totalUsers": 2
+        },
+        {
+          "channel": "Referral",
           "name": "bwref-zxzq9fsn.com / referral",
+          "sessions": 3,
+          "totalUsers": 2
+        },
+        {
+          "channel": "Referral",
+          "name": "pay.skrill.com / referral",
+          "sessions": 3,
+          "totalUsers": 2
+        },
+        {
+          "channel": "Referral",
+          "name": "viawcywq.top / referral",
           "sessions": 3,
           "totalUsers": 2
         },
@@ -260,31 +285,13 @@
         },
         {
           "channel": "Referral",
-          "name": "4phntam.top / referral",
-          "sessions": 2,
-          "totalUsers": 2
-        },
-        {
-          "channel": "Referral",
-          "name": "bw-pay-gw.com / referral",
-          "sessions": 2,
-          "totalUsers": 2
-        },
-        {
-          "channel": "Referral",
           "name": "ns4vds4.ujad65dsai.com / referral",
           "sessions": 2,
           "totalUsers": 1
         },
         {
           "channel": "Referral",
-          "name": "pay.skrill.com / referral",
-          "sessions": 2,
-          "totalUsers": 1
-        },
-        {
-          "channel": "Referral",
-          "name": "viawcywq.top / referral",
+          "name": "pay.latpay.me / referral",
           "sessions": 2,
           "totalUsers": 2
         },
@@ -314,6 +321,18 @@
         },
         {
           "channel": "Referral",
+          "name": "76.mywebstatistics16.org / referral",
+          "sessions": 1,
+          "totalUsers": 1
+        },
+        {
+          "channel": "Referral",
+          "name": "app.airtm.com / referral",
+          "sessions": 1,
+          "totalUsers": 1
+        },
+        {
+          "channel": "Referral",
           "name": "betwinner-12595.pro / referral",
           "sessions": 1,
           "totalUsers": 1
@@ -321,6 +340,12 @@
         {
           "channel": "Referral",
           "name": "bw-prm.com / referral",
+          "sessions": 1,
+          "totalUsers": 1
+        },
+        {
+          "channel": "Referral",
+          "name": "bwaab.top / referral",
           "sessions": 1,
           "totalUsers": 1
         },
@@ -350,12 +375,6 @@
         },
         {
           "channel": "Referral",
-          "name": "pay.latpay.me / referral",
-          "sessions": 1,
-          "totalUsers": 1
-        },
-        {
-          "channel": "Referral",
           "name": "prmbw.com / referral",
           "sessions": 1,
           "totalUsers": 1
@@ -364,104 +383,104 @@
       "countries": [
         {
           "name": "China",
-          "sessions": 1120.0,
-          "totalUsers": 1119.0
+          "sessions": 1277.0,
+          "totalUsers": 1275.0
         },
         {
           "name": "Cambodia",
-          "sessions": 228.0,
-          "totalUsers": 227.0
-        },
-        {
-          "name": "Spain",
-          "sessions": 173.0,
-          "totalUsers": 151.0
+          "sessions": 276.0,
+          "totalUsers": 274.0
         },
         {
           "name": "United Kingdom",
-          "sessions": 172.0,
-          "totalUsers": 172.0
-        },
-        {
-          "name": "Morocco",
-          "sessions": 163.0,
-          "totalUsers": 163.0
+          "sessions": 209.0,
+          "totalUsers": 209.0
         },
         {
           "name": "Brazil",
-          "sessions": 160.0,
-          "totalUsers": 141.0
+          "sessions": 203.0,
+          "totalUsers": 177.0
+        },
+        {
+          "name": "Spain",
+          "sessions": 203.0,
+          "totalUsers": 178.0
+        },
+        {
+          "name": "Morocco",
+          "sessions": 192.0,
+          "totalUsers": 192.0
         },
         {
           "name": "Mauritius",
-          "sessions": 108.0,
-          "totalUsers": 108.0
+          "sessions": 128.0,
+          "totalUsers": 128.0
         },
         {
           "name": "Argentina",
-          "sessions": 74.0,
-          "totalUsers": 65.0
-        },
-        {
-          "name": "Uzbekistan",
-          "sessions": 63.0,
-          "totalUsers": 59.0
-        },
-        {
-          "name": "United States",
-          "sessions": 60.0,
-          "totalUsers": 60.0
+          "sessions": 87.0,
+          "totalUsers": 71.0
         },
         {
           "name": "Russia",
-          "sessions": 56.0,
-          "totalUsers": 49.0
+          "sessions": 79.0,
+          "totalUsers": 66.0
+        },
+        {
+          "name": "United States",
+          "sessions": 73.0,
+          "totalUsers": 73.0
+        },
+        {
+          "name": "Uzbekistan",
+          "sessions": 71.0,
+          "totalUsers": 67.0
         },
         {
           "name": "Angola",
-          "sessions": 54.0,
-          "totalUsers": 47.0
-        },
-        {
-          "name": "Netherlands",
-          "sessions": 41.0,
-          "totalUsers": 37.0
+          "sessions": 67.0,
+          "totalUsers": 56.0
         },
         {
           "name": "Colombia",
-          "sessions": 40.0,
-          "totalUsers": 36.0
+          "sessions": 53.0,
+          "totalUsers": 48.0
+        },
+        {
+          "name": "Netherlands",
+          "sessions": 49.0,
+          "totalUsers": 44.0
         },
         {
           "name": "Türkiye",
-          "sessions": 40.0,
-          "totalUsers": 30.0
+          "sessions": 49.0,
+          "totalUsers": 38.0
         }
       ],
       "browsers": [
         {
           "name": "Chrome",
-          "sessions": 2770.0
+          "sessions": 3272.0
         },
         {
           "name": "Edge",
-          "sessions": 111.0
+          "sessions": 138.0
         },
         {
           "name": "Firefox",
-          "sessions": 89.0
+          "sessions": 112.0
         },
         {
           "name": "Opera",
-          "sessions": 50.0
+          "sessions": 59.0
         },
         {
           "name": "Safari",
-          "sessions": 48.0
+          "sessions": 54.0
         },
         {
           "name": "Samsung Internet",
-          "sessions": 3.0
+          "sessions": 4.0
         },
         {
           "name": "Meta Quest Browser",
@@ -471,27 +490,27 @@
       "operating_systems": [
         {
           "name": "Windows",
-          "sessions": 2792.0
+          "sessions": 3279.0
         },
         {
           "name": "Linux",
-          "sessions": 122.0
+          "sessions": 147.0
         },
         {
           "name": "Macintosh",
-          "sessions": 119.0
+          "sessions": 146.0
         },
         {
           "name": "Chrome OS",
-          "sessions": 22.0
+          "sessions": 28.0
         },
         {
           "name": "Android",
-          "sessions": 9.0
+          "sessions": 11.0
         },
         {
           "name": "Playstation 4",
-          "sessions": 9.0
+          "sessions": 11.0
         },
         {
           "name": "Tizen",
@@ -505,69 +524,69 @@
       "landing_pages": [
         {
           "name": "(не определено)",
-          "sessions": 1781,
+          "sessions": 2132,
           "screenPageViews": 0,
           "goal": 4
         },
         {
           "name": "/en/registration",
-          "sessions": 475,
-          "screenPageViews": 498,
+          "sessions": 558,
+          "screenPageViews": 587,
           "goal": 3
         },
         {
           "name": "/es/block",
-          "sessions": 153,
-          "screenPageViews": 228,
+          "sessions": 190,
+          "screenPageViews": 279,
           "goal": 0
         },
         {
           "name": "/ru/live/mortal-kombat/1252965-mortal-kombat-x",
-          "sessions": 134,
-          "screenPageViews": 144,
+          "sessions": 160,
+          "screenPageViews": 172,
           "goal": 0
         },
         {
           "name": "/en/block",
-          "sessions": 114,
-          "screenPageViews": 123,
+          "sessions": 141,
+          "screenPageViews": 151,
           "goal": 0
         },
         {
           "name": "/en",
-          "sessions": 68,
-          "screenPageViews": 159,
-          "goal": 3
-        },
-        {
-          "name": "/pt/block",
-          "sessions": 65,
-          "screenPageViews": 95,
-          "goal": 0
+          "sessions": 80,
+          "screenPageViews": 189,
+          "goal": 4
         },
         {
           "name": "/es/registration",
-          "sessions": 61,
-          "screenPageViews": 103,
+          "sessions": 78,
+          "screenPageViews": 136,
+          "goal": 0
+        },
+        {
+          "name": "/pt/block",
+          "sessions": 73,
+          "screenPageViews": 106,
           "goal": 0
         },
         {
           "name": "/br/registration",
-          "sessions": 53,
-          "screenPageViews": 77,
+          "sessions": 64,
+          "screenPageViews": 102,
           "goal": 0
         },
         {
           "name": "/ru",
-          "sessions": 42,
-          "screenPageViews": 53,
+          "sessions": 49,
+          "screenPageViews": 62,
           "goal": 0
         }
       ],
       "new_vs_returning": {
-        "new": 2411,
+        "new": 2889,
         "returning": 0,
-        "unclassified": 2062
+        "unclassified": 2444
       },
       "event_details": {
         "cta_click": [
@@ -585,15 +604,15 @@
         "nav_click": [
           {
             "value": "(пусто)",
-            "count": 23
+            "count": 24
           },
           {
             "value": "LIVE",
-            "count": 9
+            "count": 10
           },
           {
             "value": "WIN GAMES",
-            "count": 8
+            "count": 9
           },
           {
             "value": "MÁS",
@@ -608,20 +627,40 @@
             "count": 4
           },
           {
+            "value": "DIRECTO",
+            "count": 4
+          },
+          {
+            "value": "CASINO",
+            "count": 3
+          },
+          {
+            "value": "CASSINO",
+            "count": 3
+          },
+          {
             "value": "PLUS",
             "count": 3
           },
           {
-            "value": "CASINO",
+            "value": "SPORTS",
+            "count": 3
+          },
+          {
+            "value": "ÉLŐ KASZINÓ",
             "count": 2
           },
           {
-            "value": "CASSINO",
+            "value": "라이브",
             "count": 2
           },
           {
-            "value": "DIRECTO",
+            "value": "스포츠",
             "count": 2
+          },
+          {
+            "value": "AO VIVO",
+            "count": 1
           },
           {
             "value": "AVANT-MATCH",
@@ -632,19 +671,15 @@
             "count": 1
           },
           {
+            "value": "ESPORTES",
+            "count": 1
+          },
+          {
             "value": "MAIS",
             "count": 1
           },
           {
-            "value": "الرياضات",
-            "count": 1
-          },
-          {
-            "value": "라이브",
-            "count": 1
-          },
-          {
-            "value": "스포츠",
+            "value": "THỂ THAO",
             "count": 1
           }
         ],
@@ -687,93 +722,94 @@
     "mobile": {
       "property_id": "550176823",
       "totals": {
-        "sessions": 21290,
-        "totalUsers": 21045,
-        "screenPageViews": 20688,
-        "averageSessionDuration": 156.2,
-        "bounceRate": 99.9
+        "sessions": 26407,
+        "totalUsers": 25576,
+        "screenPageViews": 25507,
+        "averageSessionDuration": 163.8,
+        "bounceRate": 99.9,
+        "engagementRate": 0.1
       },
       "events": {
         "page_view": {
-          "count": 20688,
-          "users": 16841
+          "count": 25507,
+          "users": 20482
         },
         "page_load_time": {
-          "count": 19427,
-          "users": 15934
+          "count": 24038,
+          "users": 19363
         },
         "session_start": {
-          "count": 16947,
-          "users": 16428
+          "count": 20806,
+          "users": 20026
         },
         "first_visit": {
-          "count": 16561,
-          "users": 16374
+          "count": 20214,
+          "users": 19914
         },
         "user_engagement": {
-          "count": 3804,
-          "users": 2160
+          "count": 4778,
+          "users": 2619
         },
         "bet_slip_view": {
-          "count": 593,
-          "users": 173
+          "count": 758,
+          "users": 215
         },
         "sign_up_start": {
-          "count": 365,
-          "users": 278
+          "count": 419,
+          "users": 324
         },
         "promo_click": {
-          "count": 13,
-          "users": 12
+          "count": 14,
+          "users": 13
         },
         "sign_up_method_select": {
-          "count": 6,
-          "users": 6
+          "count": 8,
+          "users": 8
         },
         "social_footer_click": {
-          "count": 4,
-          "users": 4
+          "count": 6,
+          "users": 6
         }
       },
-      "avg_load_time_ms": 3694.0,
+      "avg_load_time_ms": 3972.0,
       "trend": [
         {
           "date": "2026-08-18",
-          "sessions": 21290,
-          "totalUsers": 21045,
-          "screenPageViews": 20688
+          "sessions": 26407,
+          "totalUsers": 25576,
+          "screenPageViews": 25507
         }
       ],
       "channels": [
         {
           "name": "Referral",
-          "sessions": 15040.0,
-          "totalUsers": 14945.0
+          "sessions": 18027.0,
+          "totalUsers": 17690.0
         },
         {
           "name": "Unassigned",
-          "sessions": 10887.0,
-          "totalUsers": 10924.0
+          "sessions": 13292.0,
+          "totalUsers": 13200.0
         },
         {
           "name": "Direct",
-          "sessions": 1361.0,
-          "totalUsers": 1228.0
-        },
-        {
-          "name": "Organic Search",
-          "sessions": 180.0,
-          "totalUsers": 153.0
+          "sessions": 1681.0,
+          "totalUsers": 1469.0
         },
         {
           "name": "Cross-network",
-          "sessions": 144.0,
-          "totalUsers": 144.0
+          "sessions": 715.0,
+          "totalUsers": 715.0
+        },
+        {
+          "name": "Organic Search",
+          "sessions": 220.0,
+          "totalUsers": 188.0
         },
         {
           "name": "Organic Social",
-          "sessions": 4.0,
-          "totalUsers": 4.0
+          "sessions": 6.0,
+          "totalUsers": 6.0
         },
         {
           "name": "Paid Social",
@@ -785,122 +821,146 @@
         {
           "channel": "Unassigned",
           "name": "(not set)",
-          "sessions": 10887,
-          "totalUsers": 10924
+          "sessions": 13292,
+          "totalUsers": 13200
         },
         {
           "channel": "Referral",
           "name": "bwref-zxzq9fsn.com / referral",
-          "sessions": 5649,
-          "totalUsers": 5650
+          "sessions": 6827,
+          "totalUsers": 6756
         },
         {
           "channel": "Referral",
           "name": "gbaodm2hp.com / referral",
-          "sessions": 5121,
-          "totalUsers": 5133
+          "sessions": 6017,
+          "totalUsers": 5960
         },
         {
           "channel": "Referral",
           "name": "aeyepft.top / referral",
-          "sessions": 1657,
-          "totalUsers": 1658
+          "sessions": 2067,
+          "totalUsers": 2069
         },
         {
           "channel": "Referral",
           "name": "bwref-l4ftkntp.com / referral",
-          "sessions": 1500,
-          "totalUsers": 1490
+          "sessions": 1702,
+          "totalUsers": 1688
         },
         {
           "channel": "Direct",
           "name": "(direct) / (none)",
-          "sessions": 1361,
-          "totalUsers": 1228
-        },
-        {
-          "channel": "Referral",
-          "name": "bvwdcuyr2ogy.top / referral",
-          "sessions": 312,
-          "totalUsers": 303
-        },
-        {
-          "channel": "Referral",
-          "name": "bwredir.com / referral",
-          "sessions": 308,
-          "totalUsers": 297
-        },
-        {
-          "channel": "Referral",
-          "name": "cln9vhvfo2.top / referral",
-          "sessions": 219,
-          "totalUsers": 213
-        },
-        {
-          "channel": "Organic Search",
-          "name": "google / organic",
-          "sessions": 179,
-          "totalUsers": 152
+          "sessions": 1681,
+          "totalUsers": 1469
         },
         {
           "channel": "Cross-network",
           "name": "(data not available)",
-          "sessions": 144,
-          "totalUsers": 144
+          "sessions": 715,
+          "totalUsers": 715
+        },
+        {
+          "channel": "Referral",
+          "name": "bwredir.com / referral",
+          "sessions": 383,
+          "totalUsers": 368
+        },
+        {
+          "channel": "Referral",
+          "name": "bvwdcuyr2ogy.top / referral",
+          "sessions": 342,
+          "totalUsers": 332
+        },
+        {
+          "channel": "Referral",
+          "name": "cln9vhvfo2.top / referral",
+          "sessions": 286,
+          "totalUsers": 275
+        },
+        {
+          "channel": "Organic Search",
+          "name": "google / organic",
+          "sessions": 219,
+          "totalUsers": 187
         },
         {
           "channel": "Referral",
           "name": "viawcywq.top / referral",
-          "sessions": 56,
-          "totalUsers": 51
+          "sessions": 64,
+          "totalUsers": 57
         },
         {
           "channel": "Referral",
           "name": "bvlwzc.top / referral",
-          "sessions": 53,
-          "totalUsers": 51
+          "sessions": 59,
+          "totalUsers": 57
         },
         {
           "channel": "Referral",
           "name": "betwinner.com / referral",
-          "sessions": 40,
-          "totalUsers": 34
+          "sessions": 53,
+          "totalUsers": 43
         },
         {
           "channel": "Referral",
           "name": "resfshj.top / referral",
-          "sessions": 38,
-          "totalUsers": 34
-        },
-        {
-          "channel": "Referral",
-          "name": "agdcitl.top / referral",
-          "sessions": 19,
-          "totalUsers": 19
-        },
-        {
-          "channel": "Referral",
-          "name": "betwinner-com.cdn.ampproject.org / referral",
-          "sessions": 18,
-          "totalUsers": 15
-        },
-        {
-          "channel": "Referral",
-          "name": "pay.payix.co / referral",
-          "sessions": 17,
-          "totalUsers": 14
+          "sessions": 47,
+          "totalUsers": 36
         },
         {
           "channel": "Referral",
           "name": "mqzegh.top / referral",
-          "sessions": 16,
-          "totalUsers": 16
+          "sessions": 32,
+          "totalUsers": 32
+        },
+        {
+          "channel": "Referral",
+          "name": "agdcitl.top / referral",
+          "sessions": 27,
+          "totalUsers": 27
         },
         {
           "channel": "Referral",
           "name": "secure.safecharge.com / referral",
-          "sessions": 16,
-          "totalUsers": 12
+          "sessions": 25,
+          "totalUsers": 15
+        },
+        {
+          "channel": "Referral",
+          "name": "betwinner-com.cdn.ampproject.org / referral",
+          "sessions": 24,
+          "totalUsers": 21
+        },
+        {
+          "channel": "Referral",
+          "name": "pay.payix.co / referral",
+          "sessions": 20,
+          "totalUsers": 15
+        },
+        {
+          "channel": "Referral",
+          "name": "ns4vds4.ujad65dsai.com / referral",
+          "sessions": 12,
+          "totalUsers": 10
+        },
+        {
+          "channel": "Referral",
+          "name": "checkout.luxtak.com / referral",
+          "sessions": 11,
+          "totalUsers": 8
+        },
+        {
+          "channel": "Referral",
+          "name": "pay.latpay.me / referral",
+          "sessions": 11,
+          "totalUsers": 7
+        },
+        {
+          "channel": "Referral",
+          "name": "gate.cardsecurepayments.uz / referral",
+          "sessions": 10,
+          "totalUsers": 5
         },
         {
           "channel": "Referral",
@@ -910,21 +970,27 @@
         },
         {
           "channel": "Referral",
-          "name": "ns4vds4.ujad65dsai.com / referral",
+          "name": "bw-pay-manual.com / referral",
           "sessions": 9,
           "totalUsers": 7
         },
         {
           "channel": "Referral",
-          "name": "pay.latpay.me / referral",
-          "sessions": 9,
+          "name": "bw-prm.com / referral",
+          "sessions": 8,
+          "totalUsers": 8
+        },
+        {
+          "channel": "Referral",
+          "name": "bw-pay-gw.com / referral",
+          "sessions": 7,
           "totalUsers": 6
         },
         {
           "channel": "Referral",
-          "name": "checkout.luxtak.com / referral",
+          "name": "checkout.puretransfer.io / referral",
           "sessions": 7,
-          "totalUsers": 6
+          "totalUsers": 7
         },
         {
           "channel": "Referral",
@@ -934,51 +1000,39 @@
         },
         {
           "channel": "Referral",
-          "name": "bw-pay-manual.com / referral",
-          "sessions": 6,
-          "totalUsers": 5
-        },
-        {
-          "channel": "Referral",
-          "name": "bw-prm.com / referral",
-          "sessions": 6,
-          "totalUsers": 6
-        },
-        {
-          "channel": "Referral",
-          "name": "checkout.puretransfer.io / referral",
-          "sessions": 6,
-          "totalUsers": 6
-        },
-        {
-          "channel": "Referral",
-          "name": "gate.cardsecurepayments.uz / referral",
-          "sessions": 6,
-          "totalUsers": 4
-        },
-        {
-          "channel": "Referral",
           "name": "pay2.pagolatino.tech / referral",
-          "sessions": 6,
-          "totalUsers": 5
-        },
-        {
-          "channel": "Referral",
-          "name": "bw-pay-gw.com / referral",
-          "sessions": 5,
-          "totalUsers": 5
+          "sessions": 7,
+          "totalUsers": 6
         },
         {
           "channel": "Referral",
           "name": "fastordersbp.org / referral",
-          "sessions": 5,
+          "sessions": 6,
           "totalUsers": 5
         },
         {
           "channel": "Referral",
           "name": "gate.flexpayment.tech / referral",
-          "sessions": 5,
+          "sessions": 6,
           "totalUsers": 3
+        },
+        {
+          "channel": "Referral",
+          "name": "pay2.cryptonbtc.com / referral",
+          "sessions": 6,
+          "totalUsers": 6
+        },
+        {
+          "channel": "Referral",
+          "name": "gwa.pgalta.com / referral",
+          "sessions": 5,
+          "totalUsers": 4
+        },
+        {
+          "channel": "Referral",
+          "name": "h5lwvwj.top / referral",
+          "sessions": 5,
+          "totalUsers": 5
         },
         {
           "channel": "Referral",
@@ -988,168 +1042,150 @@
         },
         {
           "channel": "Referral",
-          "name": "checkout.luqapay.com / referral",
-          "sessions": 3,
-          "totalUsers": 2
-        },
-        {
-          "channel": "Referral",
           "name": "dazen1.one / referral",
-          "sessions": 3,
+          "sessions": 4,
           "totalUsers": 3
         },
         {
           "channel": "Referral",
-          "name": "gwa.pgalta.com / referral",
-          "sessions": 3,
-          "totalUsers": 3
-        },
-        {
-          "channel": "Referral",
-          "name": "h5lwvwj.top / referral",
-          "sessions": 3,
-          "totalUsers": 3
-        },
-        {
-          "channel": "Referral",
-          "name": "pay.trx-point.com / referral",
-          "sessions": 3,
+          "name": "fast.cekdimtis.link / referral",
+          "sessions": 4,
           "totalUsers": 3
         },
         {
           "channel": "Referral",
           "name": "paymentprocess.net / referral",
-          "sessions": 3,
-          "totalUsers": 3
+          "sessions": 4,
+          "totalUsers": 4
         }
       ],
       "countries": [
         {
           "name": "Brazil",
-          "sessions": 14242.0,
-          "totalUsers": 14284.0
+          "sessions": 17191.0,
+          "totalUsers": 17173.0
         },
         {
           "name": "Uzbekistan",
-          "sessions": 2818.0,
-          "totalUsers": 2792.0
+          "sessions": 3275.0,
+          "totalUsers": 3293.0
         },
         {
           "name": "Algeria",
-          "sessions": 1357.0,
-          "totalUsers": 1356.0
+          "sessions": 1837.0,
+          "totalUsers": 1838.0
         },
         {
           "name": "Türkiye",
-          "sessions": 329.0,
-          "totalUsers": 246.0
+          "sessions": 419.0,
+          "totalUsers": 296.0
         },
         {
           "name": "Argentina",
-          "sessions": 310.0,
-          "totalUsers": 275.0
+          "sessions": 411.0,
+          "totalUsers": 343.0
         },
         {
           "name": "Venezuela",
-          "sessions": 221.0,
-          "totalUsers": 204.0
-        },
-        {
-          "name": "Burkina Faso",
-          "sessions": 166.0,
-          "totalUsers": 151.0
+          "sessions": 270.0,
+          "totalUsers": 250.0
         },
         {
           "name": "Spain",
-          "sessions": 157.0,
-          "totalUsers": 147.0
+          "sessions": 205.0,
+          "totalUsers": 190.0
         },
         {
-          "name": "Russia",
-          "sessions": 136.0,
-          "totalUsers": 108.0
+          "name": "Burkina Faso",
+          "sessions": 191.0,
+          "totalUsers": 171.0
         },
         {
           "name": "Colombia",
-          "sessions": 134.0,
-          "totalUsers": 122.0
+          "sessions": 175.0,
+          "totalUsers": 159.0
         },
         {
-          "name": "Ukraine",
-          "sessions": 110.0,
-          "totalUsers": 108.0
+          "name": "Russia",
+          "sessions": 157.0,
+          "totalUsers": 116.0
         },
         {
           "name": "United States",
-          "sessions": 106.0,
-          "totalUsers": 103.0
+          "sessions": 134.0,
+          "totalUsers": 127.0
+        },
+        {
+          "name": "Ukraine",
+          "sessions": 130.0,
+          "totalUsers": 127.0
         },
         {
           "name": "Morocco",
-          "sessions": 93.0,
-          "totalUsers": 75.0
+          "sessions": 121.0,
+          "totalUsers": 94.0
         },
         {
-          "name": "Thailand",
-          "sessions": 76.0,
-          "totalUsers": 58.0
+          "name": "Chile",
+          "sessions": 95.0,
+          "totalUsers": 90.0
         },
         {
           "name": "Bangladesh",
-          "sessions": 75.0,
-          "totalUsers": 68.0
+          "sessions": 87.0,
+          "totalUsers": 76.0
         }
       ],
       "browsers": [
         {
           "name": "Safari",
-          "sessions": 13887.0
+          "sessions": 16959.0
         },
         {
           "name": "Chrome",
-          "sessions": 7069.0
-        },
-        {
-          "name": "YaBrowser",
-          "sessions": 186.0
+          "sessions": 8582.0
         },
         {
           "name": "Android Webview",
-          "sessions": 179.0
+          "sessions": 226.0
+        },
+        {
+          "name": "YaBrowser",
+          "sessions": 224.0
         },
         {
           "name": "Samsung Internet",
-          "sessions": 148.0
+          "sessions": 187.0
         },
         {
           "name": "Opera",
-          "sessions": 24.0
+          "sessions": 27.0
         },
         {
           "name": "UC Browser",
-          "sessions": 22.0
+          "sessions": 25.0
         },
         {
           "name": "Edge",
-          "sessions": 12.0
+          "sessions": 13.0
         }
       ],
       "operating_systems": [
         {
           "name": "iOS",
-          "sessions": 17227.0
+          "sessions": 21142.0
         },
         {
           "name": "Android",
-          "sessions": 4323.0
+          "sessions": 5239.0
         },
         {
           "name": "Linux",
-          "sessions": 11.0
+          "sessions": 13.0
         },
         {
           "name": "Macintosh",
-          "sessions": 11.0
+          "sessions": 13.0
         },
         {
           "name": "Windows",
@@ -1159,69 +1195,69 @@
       "landing_pages": [
         {
           "name": "(не определено)",
-          "sessions": 10588,
+          "sessions": 12958,
           "screenPageViews": 0,
-          "goal": 215
+          "goal": 252
         },
         {
           "name": "/br/games",
-          "sessions": 9351,
-          "screenPageViews": 9570,
+          "sessions": 11180,
+          "screenPageViews": 11555,
           "goal": 0
         },
         {
           "name": "/br/line",
-          "sessions": 1594,
-          "screenPageViews": 1624,
+          "sessions": 1978,
+          "screenPageViews": 2015,
           "goal": 1
         },
         {
           "name": "/ru/games",
-          "sessions": 1125,
-          "screenPageViews": 1260,
+          "sessions": 1356,
+          "screenPageViews": 1532,
           "goal": 0
         },
         {
           "name": "/uz/games",
-          "sessions": 760,
-          "screenPageViews": 794,
+          "sessions": 896,
+          "screenPageViews": 934,
           "goal": 0
         },
         {
           "name": "/fr/line",
-          "sessions": 361,
-          "screenPageViews": 367,
-          "goal": 1
+          "sessions": 492,
+          "screenPageViews": 503,
+          "goal": 3
         },
         {
           "name": "/fr/games",
-          "sessions": 345,
-          "screenPageViews": 361,
+          "sessions": 486,
+          "screenPageViews": 506,
           "goal": 8
         },
         {
-          "name": "/ru",
-          "sessions": 166,
-          "screenPageViews": 216,
-          "goal": 0
-        },
-        {
           "name": "/es/registration",
-          "sessions": 165,
-          "screenPageViews": 232,
-          "goal": 5
+          "sessions": 232,
+          "screenPageViews": 323,
+          "goal": 6
         },
         {
           "name": "/es/block",
-          "sessions": 144,
-          "screenPageViews": 181,
+          "sessions": 189,
+          "screenPageViews": 235,
+          "goal": 0
+        },
+        {
+          "name": "/ar/line",
+          "sessions": 185,
+          "screenPageViews": 192,
           "goal": 0
         }
       ],
       "new_vs_returning": {
-        "new": 16887,
+        "new": 20578,
         "returning": 0,
-        "unclassified": 10809
+        "unclassified": 13111
       },
       "event_details": {
         "sign_up_method_select": [
@@ -1231,11 +1267,11 @@
           },
           {
             "value": "One-click",
-            "count": 1
+            "count": 2
           },
           {
             "value": "Por telefono",
-            "count": 1
+            "count": 2
           },
           {
             "value": "Redes sociales y mensajería",
@@ -1260,6 +1296,10 @@
             "count": 1
           },
           {
+            "value": "https://betwinner2.com/en/bonus/rules/slot_first_deposit",
+            "count": 1
+          },
+          {
             "value": "https://betwinner2.com/es/bonus/rules/vip_cashback",
             "count": 1
           },
@@ -1280,6 +1320,14 @@
           {
             "value": "(пусто)",
             "count": 4
+          },
+          {
+            "value": "http://smbwtg.xyz/",
+            "count": 1
+          },
+          {
+            "value": "http://smbwtw.xyz/",
+            "count": 1
           }
         ]
       }

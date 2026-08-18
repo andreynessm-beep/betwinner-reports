@@ -492,6 +492,7 @@ const KPI_TIPS = {
   screenPageViews: "Сколько страниц в сумме было открыто всеми посетителями.",
   averageSessionDuration: "Сколько в среднем длится один визит на сайт.",
   bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие.",
+  engagementRate: "Обратный показатель отказам — доля визитов, где человек реально был активен: провёл больше 10 секунд, посмотрел 2+ страницы или сделал целевое действие.",
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
   signupRate: "Из тех, кто нажал кнопку «Регистрация», какая доля реально начала вводить данные в форму.",
   completionRate: "Из тех, кто нажал кнопку «Регистрация», какая доля дошла до конца и успешно отправила форму.",
@@ -702,7 +703,7 @@ const FUNNEL_STAGE_COLORS = [
 function buildVisualFunnel(steps) {
   const n = steps.length;
   const svgNS = "http://www.w3.org/2000/svg";
-  const trackW = 300, rowH = 46, totalH = n * rowH, capRy = 7;
+  const trackW = 260, rowH = 36, totalH = n * rowH, capRy = 5;
 
   const outer = document.createElement("div"); outer.className = "vfunnel2";
   const labels = document.createElement("div"); labels.className = "vfunnel2-labels";
@@ -1040,11 +1041,13 @@ const KPI_ICONS = {
   avgLoadTime: '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10.5H13l1-8.5z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>',
   signupRate: '<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>',
   completionRate: '<path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  engagementRate: '<path d="M3 17l5-5 4 4 9-9" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 const KPI_ACCENTS = {
   sessions: "--series-1", totalUsers: "--series-7", averageSessionDuration: "--series-3",
   bounceRate: "--series-4", avgLoadTime: "--series-2",
   signupRate: "--series-5", completionRate: "--series-6",
+  engagementRate: "--good",
 };
 
 function kpiTile(label, rawValue, tipKey, opts) {
@@ -1099,6 +1102,7 @@ function renderTab(containerId, p, deviceLabel) {
   kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v) }));
   kpiGrid.appendChild(kpiTile("Ср. длительность сессии", totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
   kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
+  kpiGrid.appendChild(kpiTile("Engagement rate", totals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
   kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0
     ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => (v/1000).toFixed(1).replace(".", ",") + " с" })
     : kpiTile("Ср. время загрузки", null, "avgLoadTime", { dim: true, staticText: "собираем данные" }));
@@ -1327,6 +1331,7 @@ function combineProps(desktop, mobile) {
     screenPageViews: desktop.totals.screenPageViews + mobile.totals.screenPageViews,
     averageSessionDuration: (desktop.totals.averageSessionDuration * desktop.totals.sessions + mobile.totals.averageSessionDuration * mobile.totals.sessions) / Math.max(desktop.totals.sessions + mobile.totals.sessions, 1),
     bounceRate: (desktop.totals.bounceRate * desktop.totals.sessions + mobile.totals.bounceRate * mobile.totals.sessions) / Math.max(desktop.totals.sessions + mobile.totals.sessions, 1),
+    engagementRate: (desktop.totals.engagementRate * desktop.totals.sessions + mobile.totals.engagementRate * mobile.totals.sessions) / Math.max(desktop.totals.sessions + mobile.totals.sessions, 1),
   };
   const events = {};
   [desktop.events, mobile.events].forEach(evObj => {

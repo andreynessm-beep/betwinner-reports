@@ -1013,9 +1013,6 @@ function renderTab(containerId, p, deviceLabel) {
     wrap.append(t, h);
     const card = document.createElement("div"); card.className = "card funnel-card";
     card.appendChild(buildVisualFunnel(funnelSteps));
-    const note = document.createElement("div"); note.className = "funnel-scope-note";
-    note.textContent = "Следующий шаг воронки — первый депозит (FTD) — пока не измеряем: нет доступа к платёжным данным. Добавим, как только появится техническая возможность.";
-    card.appendChild(note);
     wrap.appendChild(card);
     el.appendChild(wrap);
   }

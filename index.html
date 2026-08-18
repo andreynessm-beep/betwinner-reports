@@ -664,9 +664,13 @@ function buildVisualFunnel(steps) {
     const row = document.createElement("div"); row.className = "vfunnel-row";
     const label = document.createElement("div"); label.className = "vfunnel-label"; label.textContent = s.label;
 
-    const topFrac = Math.max(s.value / max, s.value > 0 ? 0.04 : 0);
+    // sqrt scale, not linear — the first stage (raw site visits) dwarfs every
+    // later conversion step, so a linear width would spike once then collapse
+    // to a hairline for the rest. sqrt keeps the taper visible and legible
+    // while still preserving the actual numbers in the text labels.
+    const topFrac = Math.max(Math.sqrt(s.value / max), s.value > 0 ? 0.025 : 0);
     const nextVal = i < steps.length - 1 ? steps[i+1].value : s.value;
-    const botFrac = Math.max(nextVal / max, nextVal > 0 ? 0.04 : 0);
+    const botFrac = Math.max(Math.sqrt(nextVal / max), nextVal > 0 ? 0.025 : 0);
     const topW = topFrac * trackW, botW = botFrac * trackW;
 
     const svg = document.createElementNS(svgNS, "svg");
@@ -978,8 +982,10 @@ function renderTab(containerId, p, deviceLabel) {
   }
 
   // ---- everything else: one click away, not competing for attention ----
-  const trendBody = collapsibleSection(el, "Динамика трафика по дням");
-  trendBody.appendChild(buildTrendChart(trend || [], "sessions", "Сессии"));
+  sectionTitle(el, "Динамика трафика по дням", "сессии в день");
+  const trendCard = document.createElement("div"); trendCard.className = "card reveal";
+  trendCard.appendChild(buildTrendChart(trend || [], "sessions", "Сессии"));
+  el.appendChild(trendCard);
 
   const srcBody = collapsibleSection(el, "Источники трафика", "по каналу и конкретному источнику");
   const srcCard = document.createElement("div"); srcCard.className = "card";

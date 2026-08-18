@@ -106,6 +106,17 @@
   .note-banner b { color: var(--text-primary); }
   .note-banner.small { font-size: 12px; padding: 10px 14px; margin: 0 0 14px; }
 
+  /* ---------- executive summary ---------- */
+  .exec-summary {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; box-shadow: var(--card-shadow); margin-bottom: 22px;
+  }
+  .exec-summary h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-muted); margin: 0 0 12px; font-weight: 700; }
+  .exec-summary ul { margin: 0; padding: 0 0 0 20px; }
+  .exec-summary li { font-size: 14px; line-height: 1.6; margin-bottom: 8px; color: var(--text-primary); }
+  .exec-summary li:last-child { margin-bottom: 0; }
+  .exec-summary li b { color: var(--series-1); }
+
   .section-title { font-size: 15px; font-weight: 700; margin: 28px 0 12px; }
   .section-title .hint { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 6px; }
   .subsection-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: var(--text-muted); margin: 0 0 10px; }
@@ -144,15 +155,27 @@
   .legend-label { color: var(--text-primary); flex: 1; }
   .legend-value { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
-  /* ---------- funnel & ranked bars (shared bar-row anatomy) ---------- */
-  .funnel, .bar-list { display: flex; flex-direction: column; gap: 10px; }
-  .funnel-step, .bar-row { display: grid; grid-template-columns: 160px 1fr 70px; align-items: center; gap: 10px; font-size: 12px; }
+  /* ---------- ranked bars ---------- */
+  .bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: grid; grid-template-columns: 160px 1fr 70px; align-items: center; gap: 10px; font-size: 12px; }
   .bar-row.compact { grid-template-columns: 120px 1fr 60px; }
-  .funnel-bar-track, .bar-track { background: var(--grid); border-radius: 4px; height: 22px; overflow: hidden; cursor: default; }
-  .funnel-bar-fill, .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
-  .funnel-count, .bar-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-  .funnel-cr { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+  .bar-track { background: var(--grid); border-radius: 4px; height: 22px; overflow: hidden; cursor: default; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .bar-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
   .bar-row-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+  .bar-row.expandable .bar-row-label { cursor: pointer; color: var(--series-1); text-decoration: underline dotted; }
+  .bar-sub-list { margin: 2px 0 4px 0; padding-left: 12px; border-left: 2px solid var(--grid); display: none; }
+  .bar-sub-list.open { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ---------- visual funnel (trapezoid) ---------- */
+  .vfunnel { display: flex; flex-direction: column; }
+  .vfunnel-row { display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; gap: 10px; }
+  .vfunnel-svg { width: 100%; height: 46px; display: block; }
+  .vfunnel-label { font-size: 13px; color: var(--text-primary); font-weight: 600; }
+  .vfunnel-meta { text-align: right; font-size: 13px; }
+  .vfunnel-meta .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .vfunnel-meta .cr { display: block; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .vfunnel-drop { grid-column: 1 / -1; font-size: 11px; color: var(--text-muted); padding: 2px 0 2px 170px; }
 
   /* ---------- line/trend chart ---------- */
   .trend-wrap { display: flex; flex-direction: column; }
@@ -167,13 +190,31 @@
   }
   table.data-table td, table.events-table td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   table.data-table tr:last-child td, table.events-table tr:last-child td { border-bottom: none; }
-  table.data-table .num, table.events-table .event-count-cell, table.events-table .event-users-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data-table .num, table.events-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   table.data-table td.name-cell { max-width: 320px; overflow-wrap: anywhere; }
   tr.zero-row { opacity: 0.5; }
-  .event-name-cell { display: flex; align-items: center; gap: 6px; }
+  tr.group-row td { font-weight: 700; background: var(--page); }
+  tr.sub-row td.name-cell { padding-left: 26px; color: var(--text-secondary); font-weight: 400; font-size: 12px; }
+  .event-name-cell { display: flex; align-items: center; gap: 6px; cursor: default; }
+  .event-name-cell.expandable { cursor: pointer; }
+  .event-name-cell.expandable .event-label { color: var(--series-1); text-decoration: underline dotted; }
+  .chevron { font-size: 9px; color: var(--text-muted); transition: transform .15s; display: inline-block; }
+  .chevron.open { transform: rotate(90deg); }
   .event-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--text-muted); }
   .event-desc { color: var(--text-secondary); }
   .zero-tag { font-size: 10px; color: var(--text-muted); background: var(--grid); padding: 2px 6px; border-radius: 4px; }
+  .detail-row td { background: var(--page); padding: 4px 10px 10px 30px; }
+  .detail-list { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .detail-list .drow { display: flex; justify-content: space-between; gap: 12px; }
+  .detail-list .dval { color: var(--text-secondary); }
+  .detail-list .dcount { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .show-more-btn {
+    display: inline-block; margin-top: 12px; padding: 7px 14px; font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary);
+    cursor: pointer;
+  }
+  .show-more-btn:hover { background: var(--grid); }
 
   /* ---------- new vs returning mini stat ---------- */
   .split-stat { display: flex; gap: 24px; flex-wrap: wrap; }
@@ -181,6 +222,17 @@
   .split-stat-item .n { font-size: 24px; font-weight: 700; }
   .split-stat-item .l { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
   .split-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 14px; background: var(--grid); }
+
+  /* ---------- technical section divider ---------- */
+  details.tech-section { margin-top: 36px; }
+  details.tech-section > summary {
+    cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--text-secondary);
+    padding: 10px 0; border-top: 1px solid var(--grid); display: flex; align-items: center; gap: 8px;
+  }
+  details.tech-section > summary::-webkit-details-marker { display: none; }
+  details.tech-section > summary::before { content: "▸"; color: var(--text-muted); transition: transform .15s; }
+  details.tech-section[open] > summary::before { transform: rotate(90deg); }
+  details.tech-section > summary .tech-hint { font-weight: 400; color: var(--text-muted); }
 
   /* ---------- tooltip (custom, follows pointer) ---------- */
   #tt {
@@ -259,62 +311,62 @@ if (sessionStorage.getItem("bw_unlocked") === "1") {
 
 /* ===================== event glossary (plain language) ===================== */
 const GLOSSARY = {
-  page_view:              { label: "Просмотр страницы",            desc: "Клиент открыл и посмотрел страницу сайта." },
-  first_visit:            { label: "Первый визит",                  desc: "Человек оказался на сайте первый раз (по этому браузеру/устройству)." },
-  session_start:          { label: "Начало сессии",                 desc: "Началась новая сессия — визит на сайт." },
-  user_engagement:        { label: "Вовлечённость",                 desc: "Посетитель провёл на сайте достаточно времени и был активен, а не просто зашёл и сразу ушёл." },
-  scroll:                 { label: "Прокрутка страницы",            desc: "Посетитель прокрутил страницу вниз почти до конца (около 90%)." },
+  page_view:              { label: "Просмотр страницы",            desc: "Клиент открыл и посмотрел страницу сайта.", system: true },
+  first_visit:            { label: "Первый визит",                  desc: "Человек оказался на сайте первый раз (по этому браузеру/устройству).", system: true },
+  session_start:          { label: "Начало сессии",                 desc: "Началась новая сессия — визит на сайт.", system: true },
+  user_engagement:        { label: "Вовлечённость",                 desc: "Посетитель провёл на сайте достаточно времени и был активен, а не просто зашёл и сразу ушёл.", system: true },
+  scroll:                 { label: "Прокрутка страницы",            desc: "Посетитель прокрутил страницу вниз почти до конца (около 90%).", system: true },
+  page_load_time:         { label: "Время загрузки страницы",       desc: "Сколько миллисекунд реально грузилась страница у посетителя.", system: true },
   form_start:             { label: "Начало заполнения формы",       desc: "Клиент начал заполнять форму (например, регистрации)." },
   bet_slip_view:          { label: "Просмотр купона ставок",        desc: "У клиента на экране появился купон для сбора ставок." },
-  cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить»." },
+  cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить».", detailLabel: "Какая кнопка" },
   sign_up_start:           { label: "Старт регистрации",             desc: "Клиент нажал кнопку «Регистрация» — начал создавать аккаунт." },
-  sign_up_method_select:   { label: "Выбор способа регистрации",     desc: "Клиент выбрал способ регистрации — например, по телефону, почте или через соцсеть." },
-  sign_up_submit_click:    { label: "Отправка формы регистрации",    desc: "Клиент нажал финальную кнопку отправки формы регистрации." },
-  nav_click:               { label: "Клик по меню",                  desc: "Клик по пункту главного меню сайта." },
-  footer_click:            { label: "Клик по ссылке в подвале",      desc: "Клик по одной из обычных ссылок в самом низу сайта." },
-  promo_click:             { label: "Клик по промо-баннеру",         desc: "Клик по одному из рекламных баннеров на главной странице." },
+  sign_up_method_select:   { label: "Выбор способа регистрации",     desc: "Клиент выбрал способ регистрации — например, по телефону, почте или через соцсеть.", detailLabel: "Какой способ" },
+  sign_up_submit_click:    { label: "Отправка формы регистрации",    desc: "Клиент нажал финальную кнопку отправки формы регистрации.", detailLabel: "Каким способом" },
+  nav_click:               { label: "Клик по меню",                  desc: "Клик по пункту главного меню сайта.", detailLabel: "Какой пункт меню" },
+  footer_click:            { label: "Клик по ссылке в подвале",      desc: "Клик по одной из обычных ссылок в самом низу сайта.", detailLabel: "Какая ссылка" },
+  promo_click:             { label: "Клик по промо-баннеру",         desc: "Клик по одному из рекламных баннеров на главной странице.", detailLabel: "Какой баннер" },
   search_use:              { label: "Использование поиска",          desc: "Клиент воспользовался поиском по сайту." },
   settings_open:           { label: "Открытие настроек",             desc: "Клиент открыл настройки — смену языка или региона." },
   switch_to_mobile_click:  { label: "Переключение на мобильную версию", desc: "Клиент вручную переключился на мобильную версию сайта." },
-  sidebar_click:           { label: "Клик по боковой панели",        desc: "Клик по разделу боковой панели — «Статистика», «Результаты» или «История ставок»." },
+  sidebar_click:           { label: "Клик по боковой панели",        desc: "Клик по разделу боковой панели — «Статистика», «Результаты» или «История ставок».", detailLabel: "Какой раздел" },
   scroll_depth:            { label: "Глубина прокрутки",             desc: "Посетитель долистал страницу до отметки 25% / 50% / 75% / 90%." },
-  page_load_time:          { label: "Время загрузки страницы",       desc: "Сколько миллисекунд реально грузилась страница у посетителя." },
   login_submit_click:      { label: "Отправка формы входа",          desc: "Клиент нажал кнопку «Войти» в форме входа в аккаунт." },
   forgot_password_click:   { label: "Клик «Забыли пароль»",          desc: "Клиент нажал ссылку «Забыли пароль?»." },
-  login_social_click:      { label: "Вход через соцсеть",            desc: "Клиент нажал на вход через соцсеть (Telegram / ВК / ОК / Яндекс / Mail.Ru)." },
-  app_download_click:      { label: "Клик по скачиванию приложения", desc: "Клиент нажал на ссылку скачивания мобильного приложения (iOS или Android)." },
-  social_footer_click:     { label: "Клик по соцсети в подвале",     desc: "Клик по иконке соцсети внизу сайта (VK / Instagram / Facebook / X / Telegram)." },
+  login_social_click:      { label: "Вход через соцсеть",            desc: "Клиент нажал на вход через соцсеть (Telegram / ВК / ОК / Яндекс / Mail.Ru).", detailLabel: "Какая соцсеть" },
+  app_download_click:      { label: "Клик по скачиванию приложения", desc: "Клиент нажал на ссылку скачивания мобильного приложения (iOS или Android).", detailLabel: "Какая платформа" },
+  social_footer_click:     { label: "Клик по соцсети в подвале",     desc: "Клик по иконке соцсети внизу сайта (VK / Instagram / Facebook / X / Telegram).", detailLabel: "Какая соцсеть" },
   chat_open:               { label: "Открытие чата поддержки",       desc: "Клиент нажал кнопку открытия окна чата поддержки." },
 };
 const KNOWN_EVENT_ORDER = Object.keys(GLOSSARY);
+const BUSINESS_EVENTS = KNOWN_EVENT_ORDER.filter(n => !GLOSSARY[n].system);
 
 const KPI_TIPS = {
   sessions: "Сколько раз в сумме заходили на сайт за период (один человек может зайти несколько раз — это будет несколько сессий).",
   totalUsers: "Сколько разных людей (устройств/браузеров) заходило на сайт за период.",
   screenPageViews: "Сколько страниц в сумме было открыто всеми посетителями.",
   averageSessionDuration: "Сколько в среднем длится один визит на сайт.",
-  bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие. День запуска — трафик ещё разгоняется, показатель нормализуется по мере роста данных.",
+  bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие.",
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
 };
 
 const CHANNEL_LABELS = {
-  "Direct": "Прямые заходы (ввели адрес сайта сами / из закладок)",
+  "Direct": "Прямые заходы (адрес сайта ввели сами / из закладок)",
   "Referral": "Переходы по ссылкам с других сайтов",
   "Organic Search": "Из поисковиков (без рекламы)",
   "Paid Search": "Платная реклама в поиске",
   "Paid Social": "Платная реклама в соцсетях",
   "Organic Social": "Бесплатные переходы из соцсетей",
-  "Unassigned": "Не определено (GA4 не смог классифицировать источник)",
+  "Unassigned": "Не определено",
   "Email": "Из email-рассылок",
   "Affiliates": "Партнёрские программы",
   "Display": "Медийная (баннерная) реклама",
   "Cross-network": "Смешанные рекламные сети",
 };
 function channelLabel(name) { return CHANNEL_LABELS[name] || name; }
-
 const CHANNEL_TIPS = {
-  "Unassigned": "GA4 не смог понять, откуда пришёл человек — обычно так бывает, если реферер потерялся при переходе (например, через редиректы платёжных/партнёрских сервисов) или объём данных ещё маленький, чтобы точно классифицировать. Стоит проверить вручную в таблице источников ниже.",
-  "Direct": "Сюда попадает и реальный прямой заход, и переходы, где браузер не передал источник (например, из некоторых мобильных приложений или защищённых ссылок).",
+  "Unassigned": "GA4 не смог понять, откуда пришёл человек — реферер потерялся при переходе (например, через редиректы платёжных/партнёрских сервисов) или объёма данных ещё мало для точной классификации.",
+  "Direct": "Сюда попадает и реальный прямой заход, и переходы, где браузер не передал источник (например, из некоторых мобильных приложений).",
 };
 
 /* ===================== tooltip helper ===================== */
@@ -338,6 +390,7 @@ function bindTip(el, title, body) {
 
 /* ===================== formatting ===================== */
 const fmtInt = n => new Intl.NumberFormat("ru-RU").format(Math.round(n));
+const fmtPct = n => (Math.round(n * 10) / 10).toString().replace(".", ",") + "%";
 const fmtDur = sec => {
   sec = Math.round(sec);
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -346,6 +399,15 @@ const fmtDur = sec => {
 const fmtDate = iso => new Date(iso + "T00:00:00").toLocaleDateString("ru-RU", { day: "2-digit", month: "short" });
 const PIE_COLORS = ["--series-1","--series-2","--series-3","--series-4","--series-5","--series-6","--series-7"];
 function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function topNPlusOther(rows, n, valueKey) {
+  const sorted = (rows||[]).slice().sort((a,b) => b[valueKey]-a[valueKey]);
+  const top = sorted.slice(0, n);
+  const rest = sorted.slice(n);
+  const restSum = rest.reduce((s,r) => s+r[valueKey], 0);
+  const out = top.map(r => ({ name: r.name, value: r[valueKey] }));
+  if (restSum > 0) out.push({ name: `Остальные (${rest.length})`, value: restSum, isOther: true });
+  return out;
+}
 
 /* ===================== section title helper ===================== */
 function sectionTitle(parent, text, hint) {
@@ -366,7 +428,7 @@ function buildDonut(entries) {
   const svg = document.createElementNS(svgNS, "svg");
   svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
   svg.setAttribute("width", "100%");
-  svg.style.maxWidth = "220px";
+  svg.style.maxWidth = "180px";
   svg.style.height = "auto";
 
   entries.forEach((e) => {
@@ -411,42 +473,80 @@ function buildLegend(entries) {
   return wrap;
 }
 
-function buildFunnel(steps) {
+function donutBlock(title, rawRows, valueKey) {
+  const wrap = document.createElement("div");
+  const t = document.createElement("div"); t.className = "subsection-title"; t.textContent = title;
+  wrap.appendChild(t);
+  const capped = topNPlusOther(rawRows, 7, valueKey);
+  const entries = capped.map((e,i) => ({
+    name: e.name, label: e.name, value: e.value,
+    color: cssVar(e.isOther ? "--series-other" : PIE_COLORS[i]),
+  }));
+  const row = document.createElement("div"); row.className = "chart-row";
+  const left = document.createElement("div"); left.appendChild(buildDonut(entries));
+  const right = document.createElement("div"); right.appendChild(buildLegend(entries));
+  row.append(left, right);
+  wrap.appendChild(row);
+  return wrap;
+}
+
+// Real visual funnel — tapering trapezoid segments, single sequential hue (dataviz: ordinal ramp for stages/tiers)
+function buildVisualFunnel(steps) {
   const max = steps[0] ? steps[0].value : 1;
-  const wrap = document.createElement("div"); wrap.className = "funnel";
+  const wrap = document.createElement("div"); wrap.className = "vfunnel";
+  const svgNS = "http://www.w3.org/2000/svg";
+  const trackW = 300, rowH = 46;
+  const shades = ["--seq-550", "--seq-450", "--seq-350", "--seq-250"];
+
   steps.forEach((s, i) => {
-    const row = document.createElement("div"); row.className = "funnel-step";
-    const label = document.createElement("div"); label.textContent = s.label;
-    const track = document.createElement("div"); track.className = "funnel-bar-track"; track.tabIndex = 0;
-    const fill = document.createElement("div"); fill.className = "funnel-bar-fill";
-    const pct = max > 0 ? Math.max((s.value / max) * 100, s.value > 0 ? 3 : 0) : 0;
-    fill.style.width = pct + "%";
-    fill.style.background = `var(--seq-${450 - i*100 >= 250 ? 450 - i*100 : 250})`;
-    track.appendChild(fill);
-    const count = document.createElement("div"); count.className = "funnel-count";
+    const row = document.createElement("div"); row.className = "vfunnel-row";
+    const label = document.createElement("div"); label.className = "vfunnel-label"; label.textContent = s.label;
+
+    const topFrac = Math.max(s.value / max, s.value > 0 ? 0.04 : 0);
+    const nextVal = i < steps.length - 1 ? steps[i+1].value : s.value;
+    const botFrac = Math.max(nextVal / max, nextVal > 0 ? 0.04 : 0);
+    const topW = topFrac * trackW, botW = botFrac * trackW;
+
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${trackW} ${rowH}`);
+    svg.classList.add("vfunnel-svg");
+    svg.setAttribute("preserveAspectRatio", "none");
+    const poly = document.createElementNS(svgNS, "polygon");
+    const tl = (trackW-topW)/2, tr = tl+topW, bl = (trackW-botW)/2, br = bl+botW;
+    poly.setAttribute("points", `${tl},2 ${tr},2 ${br},${rowH-2} ${bl},${rowH-2}`);
+    poly.setAttribute("fill", cssVar(shades[Math.min(i, shades.length-1)]));
+    svg.appendChild(poly);
+    const hit = document.createElementNS(svgNS, "rect");
+    hit.setAttribute("x", 0); hit.setAttribute("y", 0); hit.setAttribute("width", trackW); hit.setAttribute("height", rowH);
+    hit.setAttribute("fill", "transparent");
+    svg.appendChild(hit);
+
+    const meta = document.createElement("div"); meta.className = "vfunnel-meta";
+    const valSpan = document.createElement("span"); valSpan.className = "val"; valSpan.textContent = fmtInt(s.value);
+    meta.appendChild(valSpan);
     let crText = "";
     if (i > 0 && steps[i-1].value > 0) {
-      const cr = (s.value / steps[i-1].value * 100).toFixed(0);
-      crText = ` (${cr}%)`;
+      crText = fmtPct(s.value / steps[i-1].value * 100) + " от предыдущего шага";
+      const crSpan = document.createElement("span"); crSpan.className = "cr"; crSpan.textContent = crText;
+      meta.appendChild(crSpan);
     }
-    count.textContent = fmtInt(s.value);
-    const crSpan = document.createElement("span"); crSpan.className = "funnel-cr"; crSpan.textContent = crText;
-    count.appendChild(crSpan);
-    row.append(label, track, count);
-    const glossaryDesc = GLOSSARY[s.name] ? GLOSSARY[s.name].desc : "";
-    bindTip(track, s.label, glossaryDesc + (crText ? ` Конверсия от предыдущего шага: ${crText.replace(/[()]/g,"")}.` : ""));
+    row.append(label, svg, meta);
+    const tipBody = (GLOSSARY[s.name] ? GLOSSARY[s.name].desc + " " : "") + (crText ? `Конверсия от предыдущего шага: ${crText.split(" ")[0]}.` : "");
+    bindTip(svg, s.label, tipBody);
     wrap.appendChild(row);
   });
   return wrap;
 }
 
 // Ranked horizontal bar list — single hue, magnitude comparison (dataviz: sequential = safe default for "compare magnitude")
+// entries: [{label, value, tip}], optional entries[i].subEntries = [{label,value}] for expand-in-place
 function buildRankedBars(entries, opts) {
   opts = opts || {};
   const max = entries.reduce((m,e) => Math.max(m, e.value), 0) || 1;
   const wrap = document.createElement("div"); wrap.className = "bar-list";
   entries.forEach(e => {
-    const row = document.createElement("div"); row.className = "bar-row" + (opts.compact ? " compact" : "");
+    const hasSub = e.subEntries && e.subEntries.length;
+    const row = document.createElement("div"); row.className = "bar-row" + (opts.compact ? " compact" : "") + (hasSub ? " expandable" : "");
     const label = document.createElement("div"); label.className = "bar-row-label"; label.textContent = e.label;
     const track = document.createElement("div"); track.className = "bar-track"; track.tabIndex = 0;
     const fill = document.createElement("div"); fill.className = "bar-fill";
@@ -458,6 +558,13 @@ function buildRankedBars(entries, opts) {
     row.append(label, track, count);
     bindTip(track, e.label, e.tip || `${fmtInt(e.value)} сессий`);
     wrap.appendChild(row);
+
+    if (hasSub) {
+      const sub = document.createElement("div"); sub.className = "bar-sub-list";
+      sub.appendChild(buildRankedBars(e.subEntries, { compact: true }));
+      wrap.appendChild(sub);
+      label.addEventListener("click", () => sub.classList.toggle("open"));
+    }
   });
   return wrap;
 }
@@ -467,7 +574,7 @@ function buildTrendChart(points, key, label) {
   const wrap = document.createElement("div"); wrap.className = "trend-wrap";
   if (points.length < 2) {
     const note = document.createElement("div"); note.className = "note-banner small";
-    note.innerHTML = `<b>Пока только ${points.length === 1 ? "один день" : "нет"} данных.</b> График тренда появится, когда накопится несколько дней статистики — обновляйте отчёт ежедневно.`;
+    note.innerHTML = `<b>Пока только ${points.length === 1 ? "один день" : "нет"} данных.</b> График появится, когда накопится несколько дней статистики.`;
     wrap.appendChild(note);
     if (points.length === 1) {
       const row = document.createElement("div"); row.style.fontSize = "13px"; row.style.color = "var(--text-secondary)";
@@ -487,7 +594,6 @@ function buildTrendChart(points, key, label) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.classList.add("trend-svg");
 
-  // gridlines + y labels (0 and max)
   [0, max].forEach(v => {
     const y = yFor(v);
     const line = document.createElementNS(svgNS, "line");
@@ -501,14 +607,12 @@ function buildTrendChart(points, key, label) {
     svg.appendChild(t);
   });
 
-  // area fill
   const areaPts = points.map((p,i) => `${xFor(i)},${yFor(p[key])}`).join(" L ");
   const area = document.createElementNS(svgNS, "path");
   area.setAttribute("d", `M ${xFor(0)},${yFor(0)} L ${areaPts} L ${xFor(points.length-1)},${yFor(0)} Z`);
   area.setAttribute("fill", cssVar("--seq-250")); area.setAttribute("opacity", "0.35");
   svg.appendChild(area);
 
-  // line
   const line = document.createElementNS(svgNS, "path");
   line.setAttribute("d", `M ${areaPts}`);
   line.setAttribute("fill", "none");
@@ -517,7 +621,6 @@ function buildTrendChart(points, key, label) {
   line.setAttribute("stroke-linejoin", "round");
   svg.appendChild(line);
 
-  // points + hit areas + x labels (every point if few, else thin out)
   const labelEvery = Math.ceil(points.length / 8);
   points.forEach((p, i) => {
     const cx = xFor(i), cy = yFor(p[key]);
@@ -569,6 +672,36 @@ function buildTable(headers, rows, alignRightFrom) {
   return table;
 }
 
+// Channels + sources merged into ONE grouped table — full text, no truncation
+function buildSourceGroupTable(channels, sources) {
+  const table = document.createElement("table"); table.className = "data-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th></tr>`;
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  const sortedChannels = (channels||[]).slice().sort((a,b) => b.sessions - a.sessions);
+  sortedChannels.forEach(ch => {
+    const trh = document.createElement("tr"); trh.className = "group-row";
+    const tdName = document.createElement("td"); tdName.className = "name-cell"; tdName.textContent = channelLabel(ch.name);
+    const tdS = document.createElement("td"); tdS.className = "num"; tdS.textContent = fmtInt(ch.sessions);
+    const tdU = document.createElement("td"); tdU.className = "num"; tdU.textContent = fmtInt(ch.totalUsers);
+    trh.append(tdName, tdS, tdU);
+    if (CHANNEL_TIPS[ch.name]) bindTip(trh, channelLabel(ch.name), CHANNEL_TIPS[ch.name]);
+    tbody.appendChild(trh);
+    const members = (sources||[]).filter(s => s.channel === ch.name).sort((a,b) => b.sessions - a.sessions);
+    members.forEach(m => {
+      const tr = document.createElement("tr"); tr.className = "sub-row";
+      const td1 = document.createElement("td"); td1.className = "name-cell"; td1.textContent = m.name;
+      const td2 = document.createElement("td"); td2.className = "num"; td2.textContent = fmtInt(m.sessions);
+      const td3 = document.createElement("td"); td3.className = "num"; td3.textContent = fmtInt(m.totalUsers);
+      tr.append(td1, td2, td3);
+      tbody.appendChild(tr);
+    });
+  });
+  table.appendChild(tbody);
+  return table;
+}
+
 /* ===================== KPI tile ===================== */
 function kpiTile(label, value, tipKey, dim) {
   const tile = document.createElement("div"); tile.className = "kpi-tile"; tile.tabIndex = 0;
@@ -583,13 +716,56 @@ function kpiTile(label, value, tipKey, dim) {
   return tile;
 }
 
+/* ===================== executive summary ===================== */
+function buildExecSummary(p) {
+  const { totals, events, avg_load_time_ms: avgLoadTimeMs, channels, countries } = p;
+  const bullets = [];
+
+  bullets.push(`Сайт посетили <b>${fmtInt(totals.totalUsers)}</b> человек, всего сессий — <b>${fmtInt(totals.sessions)}</b>, просмотров страниц — <b>${fmtInt(totals.screenPageViews)}</b>.`);
+
+  const topCountry = (countries||[])[0];
+  if (topCountry) {
+    const share = topCountry.sessions / Math.max(totals.sessions,1) * 100;
+    bullets.push(`Больше всего трафика из <b>${topCountry.name}</b> — ${fmtPct(share)} всех сессий` + (share > 50 ? ", это сильная концентрация в одной стране — стоит понимать, откуда она (реклама, партнёр, рынок запуска)." : "."));
+  }
+
+  const unassigned = (channels||[]).find(c => c.name === "Unassigned");
+  if (unassigned && unassigned.sessions / Math.max(totals.sessions,1) > 0.15) {
+    bullets.push(`<b>${fmtPct(unassigned.sessions/totals.sessions*100)}</b> сессий — источник не определён GA4. В разделе «Источники трафика» видно конкретные домены (похоже на редиректы платёжных/партнёрских сервисов) — рекомендую донастроить список исключённых рефереров в GA4.`);
+  }
+
+  const signups = events.sign_up_start?.count || 0;
+  const submits = events.sign_up_submit_click?.count || 0;
+  if (signups > 0) {
+    bullets.push(submits > 0
+      ? `<b>${fmtInt(signups)}</b> посетителей начали регистрацию, <b>${fmtInt(submits)}</b> отправили форму — конверсия ${fmtPct(submits/signups*100)}.`
+      : `<b>${fmtInt(signups)}</b> посетителей начали регистрацию, но пока никто не дошёл до отправки формы. При текущем объёме данных делать выводы рано — это стоит просто держать в фокусе на следующей неделе.`);
+  } else {
+    bullets.push(`Никто ещё не начал регистрацию за этот период — объём трафика пока маленький, понадобится больше данных.`);
+  }
+
+  if (avgLoadTimeMs && avgLoadTimeMs > 0) {
+    bullets.push(`Страница грузится в среднем <b>${fmtInt(avgLoadTimeMs)} мс</b>.`);
+  }
+
+  const wrap = document.createElement("div"); wrap.className = "exec-summary";
+  const h = document.createElement("h2"); h.textContent = "Коротко о главном";
+  const ul = document.createElement("ul");
+  bullets.forEach(b => { const li = document.createElement("li"); li.innerHTML = b; ul.appendChild(li); });
+  wrap.append(h, ul);
+  return wrap;
+}
+
 /* ===================== render one tab ===================== */
 function renderTab(containerId, p, deviceLabel) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr } = p;
+  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, event_details: eventDetails } = p;
 
-  // KPI grid
+  // ---- executive summary ----
+  el.appendChild(buildExecSummary(p));
+
+  // ---- KPI grid ----
   const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
   kpiGrid.appendChild(kpiTile("Сессии", fmtInt(totals.sessions), "sessions"));
   kpiGrid.appendChild(kpiTile("Пользователи", fmtInt(totals.totalUsers), "totalUsers"));
@@ -605,58 +781,49 @@ function renderTab(containerId, p, deviceLabel) {
   trendCard.appendChild(buildTrendChart(trend || [], "sessions", "Сессии"));
   el.appendChild(trendCard);
 
-  // ---- traffic sources ----
-  sectionTitle(el, "Источники трафика", "откуда приходят посетители");
-  const chTop = (channels || []).slice(0, 8).map(c => ({
-    label: channelLabel(c.name), value: c.sessions, tip: CHANNEL_TIPS[c.name] || `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей`,
-  }));
-  const chCard = document.createElement("div"); chCard.className = "card";
-  const chTitle = document.createElement("div"); chTitle.className = "subsection-title"; chTitle.textContent = "По каналу";
-  chCard.appendChild(chTitle);
-  chCard.appendChild(buildRankedBars(chTop));
-  el.appendChild(chCard);
-
-  const unassigned = (channels || []).find(c => c.name === "Unassigned");
-  if (unassigned && unassigned.sessions / Math.max(totals.sessions, 1) > 0.15) {
-    const note = document.createElement("div"); note.className = "note-banner small"; note.style.marginTop = "12px";
-    note.innerHTML = `<b>Наблюдение:</b> «Не определено» — ${Math.round(unassigned.sessions / totals.sessions * 100)}% трафика. GA4 не смог классифицировать источник этих визитов. Ниже в таблице источников видно конкретные домены — стоит проверить, не теряется ли реферер на редиректах (например, от платёжных сервисов).`;
-    el.appendChild(note);
-  }
-
-  const srcCard = document.createElement("div"); srcCard.className = "card"; srcCard.style.marginTop = "16px";
-  const srcTitle = document.createElement("div"); srcTitle.className = "subsection-title"; srcTitle.textContent = "Все источники (источник / канал)";
-  srcCard.appendChild(srcTitle);
-  srcCard.appendChild(buildTable(
-    ["Источник / канал", "Сессии", "Пользователи"],
-    (sources || []).map(s => [s.name, fmtInt(s.sessions), fmtInt(s.totalUsers)]),
-    1,
-  ));
+  // ---- traffic sources (merged, one table) ----
+  sectionTitle(el, "Источники трафика", "откуда приходят посетители, по каналу и конкретному источнику");
+  const srcCard = document.createElement("div"); srcCard.className = "card";
+  srcCard.appendChild(buildSourceGroupTable(channels, sources));
   el.appendChild(srcCard);
 
   // ---- geography ----
-  sectionTitle(el, "География", "топ стран по сессиям");
+  sectionTitle(el, "География", "топ стран по сессиям — нажмите «Остальные», чтобы развернуть список");
   const geoCard = document.createElement("div"); geoCard.className = "card";
   const top8c = (countries || []).slice(0, 8);
   const restC = (countries || []).slice(8);
   const restCSum = restC.reduce((s,c) => s + c.sessions, 0);
   const geoBars = top8c.map(c => ({ label: c.name, value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` }));
-  if (restCSum > 0) geoBars.push({ label: `Остальные страны (${restC.length})`, value: restCSum, tip: `${fmtInt(restCSum)} сессий суммарно по ${restC.length} странам` });
+  if (restCSum > 0) {
+    geoBars.push({
+      label: `Остальные страны (${restC.length})`, value: restCSum,
+      tip: `${fmtInt(restCSum)} сессий суммарно по ${restC.length} странам — нажмите, чтобы развернуть`,
+      subEntries: restC.map(c => ({ label: c.name, value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` })),
+    });
+  }
   geoCard.appendChild(buildRankedBars(geoBars));
   el.appendChild(geoCard);
 
-  // ---- devices/browsers ----
-  sectionTitle(el, "Технологии", "браузеры и операционные системы");
-  const techCard = document.createElement("div"); techCard.className = "card two-col";
-  const brCol = document.createElement("div");
-  const brTitle = document.createElement("div"); brTitle.className = "subsection-title"; brTitle.textContent = "Браузеры";
-  brCol.appendChild(brTitle);
-  brCol.appendChild(buildRankedBars((browsers || []).map(b => ({ label: b.name, value: b.sessions })), { compact: true }));
-  const osCol = document.createElement("div");
-  const osTitle = document.createElement("div"); osTitle.className = "subsection-title"; osTitle.textContent = "Операционные системы";
-  osCol.appendChild(osTitle);
-  osCol.appendChild(buildRankedBars((oses || []).map(o => ({ label: o.name, value: o.sessions })), { compact: true }));
-  techCard.append(brCol, osCol);
-  el.appendChild(techCard);
+  // ---- registration funnel (visual) ----
+  const funnelSteps = ["sign_up_start", "sign_up_method_select", "sign_up_submit_click"].map(name => ({
+    name, label: GLOSSARY[name].label, value: (events[name] && events[name].count) || 0,
+  }));
+  if (funnelSteps[0].value > 0) {
+    sectionTitle(el, "Воронка регистрации", "от клика «Регистрация» до отправки формы");
+    const card = document.createElement("div"); card.className = "card";
+    card.appendChild(buildVisualFunnel(funnelSteps));
+    el.appendChild(card);
+  }
+
+  // ---- landing pages (deduped + conversion) ----
+  sectionTitle(el, "Топ посадочных страниц", `куда попадают посетители и сколько из них начинают регистрацию (${GLOSSARY.sign_up_start.label.toLowerCase()})`);
+  const lpCard = document.createElement("div"); lpCard.className = "card";
+  const lpRows = (landingPages || []).slice(0, 8).map(l => {
+    const cr = l.sessions > 0 ? fmtPct(l.goal / l.sessions * 100) : "—";
+    return [l.name || "/", fmtInt(l.sessions), fmtInt(l.goal || 0), cr];
+  });
+  lpCard.appendChild(buildTable(["Страница", "Сессии", "Начали регистрацию", "Конверсия"], lpRows, 1));
+  el.appendChild(lpCard);
 
   // ---- new vs returning ----
   sectionTitle(el, "Новые и вернувшиеся посетители");
@@ -674,7 +841,7 @@ function renderTab(containerId, p, deviceLabel) {
   stat.appendChild(mk("Новые посетители", nvr?.new || 0, "Люди, для которых это первый зафиксированный визит на сайт."));
   stat.appendChild(mk("Вернувшиеся посетители", nvr?.returning || 0, "Люди, которые уже были на сайте раньше и пришли снова."));
   if (nvr?.unclassified) {
-    stat.appendChild(mk("Пока не классифицировано", nvr.unclassified, "GA4 ещё не определил, новый это посетитель или вернувшийся — обычно из-за небольшого объёма данных в первые дни после запуска. Это НЕ значит 0 вернувшихся — данные уточнятся."));
+    stat.appendChild(mk("Пока не классифицировано", nvr.unclassified, "GA4 ещё не определил, новый это посетитель или вернувшийся — обычно из-за небольшого объёма данных в первые дни после запуска. Это НЕ значит 0 вернувшихся."));
   }
   nvrCard.appendChild(stat);
   const bar = document.createElement("div"); bar.className = "split-bar";
@@ -685,86 +852,104 @@ function renderTab(containerId, p, deviceLabel) {
   nvrCard.appendChild(bar);
   el.appendChild(nvrCard);
 
-  // ---- landing pages ----
-  sectionTitle(el, "Топ посадочных страниц", "куда именно попадают посетители");
-  const lpCard = document.createElement("div"); lpCard.className = "card";
-  lpCard.appendChild(buildTable(
-    ["Страница", "Сессии", "Просмотры"],
-    (landingPages || []).map(l => [l.name || "/", fmtInt(l.sessions), fmtInt(l.screenPageViews)]),
-    1,
-  ));
-  el.appendChild(lpCard);
+  /* ===================== technical section (collapsed) ===================== */
+  const tech = document.createElement("details"); tech.className = "tech-section";
+  const summary = document.createElement("summary");
+  summary.innerHTML = `Техническая часть <span class="tech-hint">— устройства, полный список событий, детали кликов (для аналитиков)</span>`;
+  tech.appendChild(summary);
 
-  // ---- registration funnel ----
-  const funnelSteps = ["sign_up_start", "sign_up_method_select", "sign_up_submit_click"].map(name => ({
-    name, label: GLOSSARY[name].label, value: (events[name] && events[name].count) || 0,
-  }));
-  if (funnelSteps[0].value > 0) {
-    sectionTitle(el, "Воронка регистрации", "от клика «Регистрация» до отправки формы");
-    const card = document.createElement("div"); card.className = "card";
-    card.appendChild(buildFunnel(funnelSteps));
-    el.appendChild(card);
-  }
+  // devices
+  sectionTitle(tech, "Устройства", "браузеры и операционные системы");
+  const techCard = document.createElement("div"); techCard.className = "card two-col";
+  techCard.appendChild(donutBlock("Браузеры", browsers, "sessions"));
+  techCard.appendChild(donutBlock("Операционные системы", oses, "sessions"));
+  tech.appendChild(techCard);
 
-  // ---- event composition donut ----
-  const evEntries = KNOWN_EVENT_ORDER
-    .filter(name => events[name] && events[name].count > 0)
-    .map(name => ({ name, label: GLOSSARY[name].label, value: events[name].count }))
-    .sort((a,b) => b.value - a.value);
-  const top = evEntries.slice(0, 7);
-  const rest = evEntries.slice(7);
-  const restSum = rest.reduce((s,e) => s+e.value, 0);
-  const chartEntries = top.map((e,i) => ({...e, color: cssVar(PIE_COLORS[i])}));
-  if (restSum > 0) chartEntries.push({ name: "other", label: "Остальные события", value: restSum, color: cssVar("--series-other") });
-
-  if (chartEntries.length) {
-    sectionTitle(el, "Из чего складывается активность на сайте", "наведите на событие или сегмент — появится объяснение");
-    const card = document.createElement("div"); card.className = "card chart-row";
-    const left = document.createElement("div"); left.appendChild(buildDonut(chartEntries));
-    const right = document.createElement("div"); right.appendChild(buildLegend(chartEntries));
-    card.append(left, right);
-    el.appendChild(card);
-  }
-
-  // ---- appendix: full events table ----
-  sectionTitle(el, "Приложение: полный список отслеживаемых событий", deviceLabel);
+  // appendix: full events table (collapsed to first 10 rows)
+  sectionTitle(tech, "Полный список отслеживаемых событий", deviceLabel);
   const card2 = document.createElement("div"); card2.className = "card";
   const table = document.createElement("table"); table.className = "events-table";
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr><th>Событие</th><th>Что это значит</th><th style="text-align:right">Срабатываний</th><th style="text-align:right">Людей</th></tr>`;
+  thead.innerHTML = `<tr><th>Событие</th><th>Что это значит</th><th style="text-align:right">Срабатываний</th><th style="text-align:right">% пользователей</th></tr>`;
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const allNames = KNOWN_EVENT_ORDER.slice().sort((a,b) => {
     const ca = (events[a] && events[a].count) || 0, cb = (events[b] && events[b].count) || 0;
     return cb - ca;
   });
-  allNames.forEach(name => {
+  const VISIBLE_ROWS = 10;
+  allNames.forEach((name, idx) => {
     const info = GLOSSARY[name];
     const data = events[name];
+    const rawDetail = (eventDetails && eventDetails[name]) || [];
+    const detail = rawDetail.filter(d => d.value && d.value !== "(пусто)");
+    const hasDetail = detail.length > 0;
+
     const tr = document.createElement("tr");
-    if (!data || data.count === 0) tr.className = "zero-row";
+    if (idx >= VISIBLE_ROWS) tr.style.display = "none";
+    tr.classList.add("appendix-row");
+    if (!data || data.count === 0) tr.className += " zero-row";
     const tdName = document.createElement("td");
-    const nameCell = document.createElement("div"); nameCell.className = "event-name-cell";
-    const nameSpan = document.createElement("span"); nameSpan.textContent = info.label;
-    nameCell.appendChild(nameSpan);
+    const nameCell = document.createElement("div"); nameCell.className = "event-name-cell" + (hasDetail ? " expandable" : "");
+    const chevron = document.createElement("span"); chevron.className = "chevron"; chevron.textContent = "▸"; chevron.style.visibility = hasDetail ? "visible" : "hidden";
+    const nameSpan = document.createElement("span"); nameSpan.className = "event-label"; nameSpan.textContent = info.label;
+    nameCell.append(chevron, nameSpan);
     tdName.appendChild(nameCell);
     const codeDiv = document.createElement("div"); codeDiv.className = "event-code"; codeDiv.textContent = name;
     tdName.appendChild(codeDiv);
     const tdDesc = document.createElement("td"); tdDesc.className = "event-desc"; tdDesc.textContent = info.desc;
-    const tdCount = document.createElement("td"); tdCount.className = "event-count-cell";
+    const tdCount = document.createElement("td"); tdCount.className = "num";
     tdCount.textContent = data && data.count ? fmtInt(data.count) : "—";
     if (!data || data.count === 0) {
       const tag = document.createElement("span"); tag.className = "zero-tag"; tag.textContent = "пока не зафиксировано";
       tdCount.appendChild(document.createElement("br")); tdCount.appendChild(tag);
     }
-    const tdUsers = document.createElement("td"); tdUsers.className = "event-users-cell";
-    tdUsers.textContent = data && data.users ? fmtInt(data.users) : "—";
-    tr.append(tdName, tdDesc, tdCount, tdUsers);
+    const tdPct = document.createElement("td"); tdPct.className = "num";
+    tdPct.textContent = data && data.users && totals.totalUsers ? fmtPct(data.users/totals.totalUsers*100) : "—";
+    tr.append(tdName, tdDesc, tdCount, tdPct);
     tbody.appendChild(tr);
+
+    if (hasDetail) {
+      const detailTr = document.createElement("tr"); detailTr.className = "detail-row appendix-row"; detailTr.style.display = "none";
+      if (idx >= VISIBLE_ROWS) detailTr.dataset.hiddenByLimit = "1";
+      const detailTd = document.createElement("td"); detailTd.colSpan = 4;
+      const dl = document.createElement("div"); dl.className = "detail-list";
+      const detailTitle = document.createElement("div"); detailTitle.style.color = "var(--text-muted)"; detailTitle.style.marginBottom = "2px";
+      detailTitle.textContent = info.detailLabel || "Детали";
+      dl.appendChild(detailTitle);
+      detail.slice(0, 15).forEach(d => {
+        const row = document.createElement("div"); row.className = "drow";
+        const v = document.createElement("span"); v.className = "dval"; v.textContent = d.value;
+        const c = document.createElement("span"); c.className = "dcount"; c.textContent = fmtInt(d.count);
+        row.append(v, c);
+        dl.appendChild(row);
+      });
+      detailTd.appendChild(dl);
+      detailTr.appendChild(detailTd);
+      tbody.appendChild(detailTr);
+      nameCell.addEventListener("click", () => {
+        const open = chevron.classList.toggle("open");
+        detailTr.style.display = open ? "" : "none";
+      });
+    }
   });
   table.appendChild(tbody);
   card2.appendChild(table);
-  el.appendChild(card2);
+
+  if (allNames.length > VISIBLE_ROWS) {
+    const btn = document.createElement("button"); btn.className = "show-more-btn";
+    btn.textContent = `Показать все события (${allNames.length})`;
+    btn.addEventListener("click", () => {
+      Array.from(tbody.children).forEach(r => {
+        if (!r.classList.contains("detail-row")) r.style.display = "";
+      });
+      btn.remove();
+    });
+    card2.appendChild(btn);
+  }
+  tech.appendChild(card2);
+
+  el.appendChild(tech);
 }
 
 /* ===================== combine desktop+mobile ===================== */
@@ -777,6 +962,16 @@ function mergeBreakdown(a, b, metricKeys) {
   });
   return Array.from(map.values()).sort((x,y) => y[metricKeys[0]] - x[metricKeys[0]]);
 }
+function mergeSources(a, b) {
+  const map = new Map();
+  [...(a||[]), ...(b||[])].forEach(row => {
+    const key = row.channel + "||" + row.name;
+    if (!map.has(key)) map.set(key, { channel: row.channel, name: row.name, sessions: 0, totalUsers: 0 });
+    const acc = map.get(key);
+    acc.sessions += row.sessions; acc.totalUsers += row.totalUsers;
+  });
+  return Array.from(map.values()).sort((x,y) => y.sessions - x.sessions);
+}
 function mergeTrend(a, b) {
   const map = new Map();
   [...(a||[]), ...(b||[])].forEach(row => {
@@ -785,6 +980,29 @@ function mergeTrend(a, b) {
     acc.sessions += row.sessions; acc.totalUsers += row.totalUsers; acc.screenPageViews += row.screenPageViews;
   });
   return Array.from(map.values()).sort((x,y) => x.date.localeCompare(y.date));
+}
+function mergeLandingPages(a, b) {
+  const map = new Map();
+  [...(a||[]), ...(b||[])].forEach(row => {
+    if (!map.has(row.name)) map.set(row.name, { name: row.name, sessions: 0, screenPageViews: 0, goal: 0 });
+    const acc = map.get(row.name);
+    acc.sessions += row.sessions; acc.screenPageViews += row.screenPageViews; acc.goal += row.goal || 0;
+  });
+  return Array.from(map.values()).sort((x,y) => y.sessions - x.sessions);
+}
+function mergeEventDetails(a, b) {
+  const out = {};
+  [a||{}, b||{}].forEach(obj => {
+    Object.entries(obj).forEach(([ev, rows]) => {
+      if (!out[ev]) out[ev] = {};
+      rows.forEach(r => { out[ev][r.value] = (out[ev][r.value]||0) + r.count; });
+    });
+  });
+  const result = {};
+  Object.entries(out).forEach(([ev, valMap]) => {
+    result[ev] = Object.entries(valMap).map(([value,count]) => ({value,count})).sort((x,y)=>y.count-x.count);
+  });
+  return result;
 }
 function combineProps(desktop, mobile) {
   const totals = {
@@ -799,7 +1017,7 @@ function combineProps(desktop, mobile) {
     Object.entries(evObj).forEach(([name, v]) => {
       if (!events[name]) events[name] = { count: 0, users: 0 };
       events[name].count += v.count;
-      events[name].users += v.users; // same person on both devices would be double-counted here — GA4 properties are separate, no cross-device dedup possible
+      events[name].users += v.users;
     });
   });
   const avgLoadTime = (desktop.avg_load_time_ms > 0 || mobile.avg_load_time_ms > 0)
@@ -810,16 +1028,17 @@ function combineProps(desktop, mobile) {
     totals, events, avg_load_time_ms: avgLoadTime,
     trend: mergeTrend(desktop.trend, mobile.trend),
     channels: mergeBreakdown(desktop.channels, mobile.channels, ["sessions", "totalUsers"]),
-    sources: mergeBreakdown(desktop.sources, mobile.sources, ["sessions", "totalUsers"]),
+    sources: mergeSources(desktop.sources, mobile.sources),
     countries: mergeBreakdown(desktop.countries, mobile.countries, ["sessions", "totalUsers"]),
     browsers: mergeBreakdown(desktop.browsers, mobile.browsers, ["sessions"]),
     operating_systems: mergeBreakdown(desktop.operating_systems, mobile.operating_systems, ["sessions"]),
-    landing_pages: mergeBreakdown(desktop.landing_pages, mobile.landing_pages, ["sessions", "screenPageViews"]),
+    landing_pages: mergeLandingPages(desktop.landing_pages, mobile.landing_pages),
     new_vs_returning: {
       new: (desktop.new_vs_returning?.new||0) + (mobile.new_vs_returning?.new||0),
       returning: (desktop.new_vs_returning?.returning||0) + (mobile.new_vs_returning?.returning||0),
       unclassified: (desktop.new_vs_returning?.unclassified||0) + (mobile.new_vs_returning?.unclassified||0),
     },
+    event_details: mergeEventDetails(desktop.event_details, mobile.event_details),
   };
 }
 
@@ -832,7 +1051,7 @@ async function initReport() {
   const desktop = data.properties.desktop, mobile = data.properties.mobile;
   const combined = combineProps(desktop, mobile);
 
-  renderTab("panel-combined", combined, "ПК + Моб суммарно. Пользователи считаются раздельно по устройствам (GA4 не объединяет ПК- и моб-визиты одного человека в разных свойствах), поэтому сумма может немного превышать реальное число уникальных людей.");
+  renderTab("panel-combined", combined, "ПК + Моб суммарно.");
   renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
   renderTab("panel-mobile", mobile, "мобильная версия сайта");
 }

@@ -265,6 +265,10 @@
   .trend-wrap { display: flex; flex-direction: column; }
   .trend-svg { width: 100%; height: auto; }
   .trend-axis-label { font-size: 10px; fill: var(--text-muted); }
+  .trend-value-label {
+    font-size: 10.5px; font-weight: 700; fill: var(--text-primary);
+    paint-order: stroke; stroke: var(--surface-1); stroke-width: 3px; stroke-linejoin: round;
+  }
 
   /* ---------- generic data table ---------- */
   table.data-table, table.events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -767,7 +771,7 @@ function buildTrendChart(points, key, label) {
     }
     return wrap;
   }
-  const W = 640, H = 180, padL = 40, padR = 12, padT = 14, padB = 24;
+  const W = 640, H = 190, padL = 40, padR = 12, padT = 24, padB = 24;
   const max = Math.max(...points.map(p => p[key]), 1);
   const xStep = (W - padL - padR) / (points.length - 1);
   const yFor = v => padT + (H - padT - padB) * (1 - v / max);
@@ -835,6 +839,18 @@ function buildTrendChart(points, key, label) {
     dot.style.transitionDelay = (0.15 + i * (1.0 / points.length)) + "s";
     svg.appendChild(dot);
     setTimeout(() => { dot.style.opacity = "1"; dot.style.transform = "scale(1)"; }, 20);
+
+    // value label above each point — outlined so it stays legible over the line/area
+    const valLabel = document.createElementNS(svgNS, "text");
+    valLabel.setAttribute("x", cx); valLabel.setAttribute("y", Math.max(cy - 10, 11));
+    valLabel.setAttribute("text-anchor", "middle");
+    valLabel.setAttribute("class", "trend-value-label");
+    valLabel.textContent = fmtInt(p[key]);
+    valLabel.style.opacity = "0"; valLabel.style.transition = "opacity .3s ease";
+    valLabel.style.transitionDelay = (0.25 + i * (1.0 / points.length)) + "s";
+    svg.appendChild(valLabel);
+    setTimeout(() => { valLabel.style.opacity = "1"; }, 20);
+
     const hit = document.createElementNS(svgNS, "circle");
     hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", "14");
     hit.setAttribute("fill", "transparent"); hit.style.cursor = "default";
@@ -979,7 +995,7 @@ function renderTab(containerId, p, deviceLabel) {
   kpiGrid.appendChild(kpiTile("Ср. длительность сессии", totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
   kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
   kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0
-    ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => fmtInt(v) + " мс" })
+    ? kpiTile("Ср. время загрузки", avgLoadTimeMs, "avgLoadTime", { format: v => (v/1000).toFixed(1).replace(".", ",") + " с" })
     : kpiTile("Ср. время загрузки", null, "avgLoadTime", { dim: true, staticText: "собираем данные" }));
   el.appendChild(kpiGrid);
 

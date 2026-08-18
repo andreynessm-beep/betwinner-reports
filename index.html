@@ -1231,21 +1231,28 @@ function renderTab(containerId, p, deviceLabel) {
   function renderDynamic(filters) {
     const fSessionRows = hasFlat ? filterSessionRows(sessionRows, filters) : null;
     const fTotals = hasFlat ? computeFilteredTotals(fSessionRows) : totals;
-    const fEvents = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, funnelMode)) : events;
+    // KPI tiles above the funnel always reflect ALL visitors -- only the funnel
+    // diagram itself reacts to the "Все посетители"/"Только новые" toggle.
+    const fEventsAll = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, "all")) : events;
+    const fEventsFunnel = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, funnelMode)) : events;
     const fTrend = hasFlat ? computeFilteredTrend(fSessionRows) : trend;
 
-    // ---- THE funnel: the one thing this report exists to answer ----
-    const funnelSteps = [
+    const stepsFrom = fEvents => [
       { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
       ...["sign_up_start", "form_start", "sign_up_submit_click"].map(name => ({
         name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
       })),
     ];
+    // ---- KPI cards: always "all visitors", independent of the funnel toggle ----
+    const kpiSteps = stepsFrom(fEventsAll);
     // Both measured from the same starting point (клик «Регистрация» = sign_up_start)
     // so the two cards answer two different questions about the same group of people,
     // not two overlapping slices of the funnel.
-    const signupRate = funnelSteps[1].value > 0 ? funnelSteps[2].value / funnelSteps[1].value * 100 : 0;
-    const completionRate = funnelSteps[1].value > 0 ? funnelSteps[3].value / funnelSteps[1].value * 100 : 0;
+    const signupRate = kpiSteps[1].value > 0 ? kpiSteps[2].value / kpiSteps[1].value * 100 : 0;
+    const completionRate = kpiSteps[1].value > 0 ? kpiSteps[3].value / kpiSteps[1].value * 100 : 0;
+
+    // ---- THE funnel diagram: the one thing that reacts to the toggle ----
+    const funnelSteps = stepsFrom(fEventsFunnel);
 
     // ---- KPI grid: headline numbers, including the funnel's key conversions
     // (dashboard design: 5-9 max, but conversion is the whole point of the page) ----
@@ -1253,8 +1260,8 @@ function renderTab(containerId, p, deviceLabel) {
     const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
     kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
-    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(funnelSteps[2].value)} из ${fmtInt(funnelSteps[1].value)}` }));
-    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(funnelSteps[3].value)} из ${fmtInt(funnelSteps[1].value)}` }));
+    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(kpiSteps[1].value)}` }));
+    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[3].value)} из ${fmtInt(kpiSteps[1].value)}` }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));

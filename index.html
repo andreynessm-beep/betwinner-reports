@@ -245,50 +245,46 @@
   .bar-sub-list > div { overflow: hidden; }
   .bar-sub-list.open { grid-template-rows: 1fr; margin: 2px 0 4px 0; }
 
-  /* ---------- visual funnel (colorful 3D-style layers) ---------- */
-  .vfunnel { display: flex; flex-direction: column; }
-  .vfunnel-row { display: grid; grid-template-columns: 150px 1fr; align-items: stretch; gap: 12px; }
+  /* ---------- visual funnel (continuous layered "3D" cone, matches reference) ---------- */
+  .vfunnel2 { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: stretch; }
+  .vfunnel2-labels { display: grid; gap: 8px; }
   .vfunnel-label-chip {
     display: flex; align-items: center; padding: 0 14px; border-radius: 10px;
-    color: #fff; font-size: 13.5px; font-weight: 700; line-height: 1.25;
+    color: #fff; font-size: 13px; font-weight: 700; line-height: 1.25;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 4px 10px rgba(0,0,0,0.08);
   }
+  .vfunnel2-graphic { position: relative; }
   .vfunnel-svg {
-    width: 100%; height: 64px; display: block; overflow: visible;
-    transition: transform .25s ease, filter .25s ease;
-    animation: vfunnelGlow 3.2s ease-in-out infinite;
+    width: 100%; height: auto; display: block; overflow: visible;
+    animation: vfunnelGlow 3.6s ease-in-out infinite;
+    transition: filter .25s ease;
   }
-  .vfunnel-row:nth-child(1) .vfunnel-svg { animation-delay: 0s; --glow: rgba(42,120,214,0.45); }
-  .vfunnel-row:nth-child(3) .vfunnel-svg { animation-delay: .5s; --glow: rgba(90,91,224,0.45); }
-  .vfunnel-row:nth-child(5) .vfunnel-svg { animation-delay: 1s; --glow: rgba(125,79,214,0.45); }
-  .vfunnel-row:nth-child(7) .vfunnel-svg { animation-delay: 1.5s; --glow: rgba(91,58,167,0.45); }
-  .vfunnel-row:hover .vfunnel-svg { transform: scale(1.02); filter: drop-shadow(0 0 18px var(--glow, rgba(42,120,214,0.5))) brightness(1.06); }
+  .vfunnel2-graphic:hover .vfunnel-svg { filter: drop-shadow(0 0 22px rgba(90,91,224,0.5)) brightness(1.05); }
   @keyframes vfunnelGlow {
-    0%, 100% { filter: drop-shadow(0 2px 6px rgba(15,23,42,0.10)); }
-    50% { filter: drop-shadow(0 4px 16px var(--glow, rgba(42,120,214,0.35))); }
+    0%, 100% { filter: drop-shadow(0 2px 10px rgba(15,23,42,0.12)); }
+    50% { filter: drop-shadow(0 6px 22px rgba(90,91,224,0.30)); }
   }
-  .vfunnel-poly { transform: scaleY(0); transform-origin: center top; transition: transform .55s cubic-bezier(.2,.8,.2,1); }
+  .vfunnel-poly { transform: scaleY(0); transform-origin: center top; transition: transform .5s cubic-bezier(.2,.8,.2,1); }
   .vfunnel-poly.animate-in { transform: scaleY(1); }
   .vfunnel-cap { opacity: 0; transition: opacity .3s ease; }
   .vfunnel-cap.animate-in { opacity: 1; }
   .vfunnel-value-text {
-    fill: #fff; font-weight: 800; font-size: 17px; text-anchor: middle; dominant-baseline: middle;
+    fill: #fff; font-weight: 800; font-size: 16px; text-anchor: middle; dominant-baseline: middle;
     paint-order: stroke; stroke: rgba(0,0,0,0.18); stroke-width: 3px; stroke-linejoin: round;
     opacity: 0; transition: opacity .3s ease;
   }
   .vfunnel-value-text.animate-in { opacity: 1; }
 
-  .vfunnel-connector { display: flex; justify-content: center; align-items: center; margin: -2px 0; padding-left: 162px; }
   .vfunnel-pill {
-    display: inline-flex; align-items: center; gap: 5px;
+    position: absolute; left: 50%; display: inline-flex; align-items: center; gap: 4px;
     background: var(--surface-1); border: 1.5px solid var(--border); border-radius: 999px;
-    padding: 3px 12px; font-size: 12px; font-weight: 800; color: var(--text-primary);
-    box-shadow: 0 3px 8px rgba(15,23,42,0.10);
-    transform: scale(0); transition: transform .35s cubic-bezier(.34,1.56,.64,1);
-    position: relative; z-index: 2;
+    padding: 3px 11px; font-size: 11.5px; font-weight: 800; color: var(--text-primary);
+    box-shadow: 0 3px 10px rgba(15,23,42,0.14);
+    transform: translate(-50%, -50%) scale(0); transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    z-index: 2; white-space: nowrap;
   }
-  .vfunnel-pill.animate-in { transform: scale(1); }
-  .vfunnel-pill .arrow { color: var(--text-muted); font-size: 10px; }
+  .vfunnel-pill.animate-in { transform: translate(-50%, -50%) scale(1); }
+  .vfunnel-pill .arrow { color: var(--text-muted); font-size: 9px; }
 
   /* ---------- line/trend chart ---------- */
   .trend-wrap { display: flex; flex-direction: column; }
@@ -495,8 +491,8 @@ const KPI_TIPS = {
   averageSessionDuration: "Сколько в среднем длится один визит на сайт.",
   bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие.",
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
-  signupRate: "Какая доля всех сессий закончилась стартом регистрации (клик по кнопке «Регистрация»).",
-  completionRate: "Из тех, кто начал заполнять форму регистрации, какая доля довела дело до конца и отправила её.",
+  signupRate: "Из тех, кто нажал кнопку «Регистрация», какая доля реально начала вводить данные в форму.",
+  completionRate: "Из тех, кто нажал кнопку «Регистрация», какая доля дошла до конца и успешно отправила форму.",
 };
 
 const CHANNEL_LABELS = {
@@ -698,94 +694,110 @@ const FUNNEL_STAGE_COLORS = [
   { base: "#5b3aa7", top: "#8163c9" }, // deep purple
 ];
 
+// Continuous layered funnel — one shape, not N separate cards, matching the
+// reference: color-chip labels on the left, an unbroken "stacked discs" cone
+// with the value inside each band, on the right.
 function buildVisualFunnel(steps) {
   const max = steps[0] ? steps[0].value : 1;
-  const wrap = document.createElement("div"); wrap.className = "vfunnel";
+  const n = steps.length;
   const svgNS = "http://www.w3.org/2000/svg";
-  const trackW = 300, rowH = 64;
+  const trackW = 300, rowH = 68, totalH = n * rowH, capRy = 9;
+
+  const outer = document.createElement("div"); outer.className = "vfunnel2";
+  const labels = document.createElement("div"); labels.className = "vfunnel2-labels";
+  labels.style.gridTemplateRows = `repeat(${n}, 1fr)`;
+  const graphic = document.createElement("div"); graphic.className = "vfunnel2-graphic";
+
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${trackW} ${totalH}`);
+  svg.classList.add("vfunnel-svg");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const defs = document.createElementNS(svgNS, "defs");
+  svg.appendChild(defs);
+
+  const widthFor = v => Math.max(Math.sqrt(v / max), v > 0 ? 0.11 : 0) * trackW;
 
   steps.forEach((s, i) => {
-    if (i > 0 && steps[i-1].value > 0) {
-      const connector = document.createElement("div"); connector.className = "vfunnel-connector";
-      const pill = document.createElement("div"); pill.className = "vfunnel-pill";
-      const cr = fmtPct(s.value / steps[i-1].value * 100);
-      pill.innerHTML = `<span class="arrow">&#8595;</span><span>${cr}</span>`;
-      pill.style.transitionDelay = (i * 220 + 120) + "ms";
-      connector.appendChild(pill);
-      wrap.appendChild(connector);
-      setTimeout(() => pill.classList.add("animate-in"), 20);
-    }
-
-    const row = document.createElement("div"); row.className = "vfunnel-row";
     const colors = FUNNEL_STAGE_COLORS[Math.min(i, FUNNEL_STAGE_COLORS.length-1)];
     const chip = document.createElement("div"); chip.className = "vfunnel-label-chip";
     chip.style.background = colors.base;
     chip.textContent = s.label;
+    labels.appendChild(chip);
 
-    // sqrt scale, not linear — the first stage (raw site visits) dwarfs every
-    // later conversion step, so a linear width would spike once then collapse
-    // to a hairline for the rest. sqrt keeps the taper visible and legible
-    // while still preserving the actual numbers in the text labels.
-    const topFrac = Math.max(Math.sqrt(s.value / max), s.value > 0 ? 0.11 : 0);
-    const nextVal = i < steps.length - 1 ? steps[i+1].value : s.value;
-    const botFrac = Math.max(Math.sqrt(nextVal / max), nextVal > 0 ? 0.11 : 0);
-    const topW = topFrac * trackW, botW = botFrac * trackW;
-
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("viewBox", `0 0 ${trackW} ${rowH}`);
-    svg.classList.add("vfunnel-svg");
-    svg.setAttribute("preserveAspectRatio", "none");
-
-    const tl = (trackW-topW)/2, tr = tl+topW, bl = (trackW-botW)/2, br = bl+botW;
-    const capRy = 6;
+    const y0 = i * rowH, y1 = y0 + rowH;
+    const topW = widthFor(s.value);
+    const nextVal = i < n - 1 ? steps[i+1].value : s.value;
+    const botW = widthFor(nextVal);
+    const cx = trackW / 2;
+    const tl = cx - topW/2, tr = cx + topW/2, bl = cx - botW/2, br = cx + botW/2;
 
     const gradId = "vfg" + i + Math.random().toString(36).slice(2,7);
-    const defs = document.createElementNS(svgNS, "defs");
     const grad = document.createElementNS(svgNS, "linearGradient");
     grad.setAttribute("id", gradId); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0"); grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
     const stop1 = document.createElementNS(svgNS, "stop"); stop1.setAttribute("offset", "0%"); stop1.setAttribute("stop-color", colors.top);
     const stop2 = document.createElementNS(svgNS, "stop"); stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", colors.base);
-    grad.append(stop1, stop2); defs.appendChild(grad); svg.appendChild(defs);
+    grad.append(stop1, stop2); defs.appendChild(grad);
 
     const poly = document.createElementNS(svgNS, "polygon");
     poly.classList.add("vfunnel-poly");
-    poly.style.transitionDelay = (i * 220) + "ms";
-    poly.setAttribute("points", `${tl},${capRy} ${tr},${capRy} ${br},${rowH-capRy} ${bl},${rowH-capRy}`);
+    poly.style.transformBox = "fill-box"; poly.style.transformOrigin = "50% 0%";
+    poly.style.transitionDelay = (i * 200) + "ms";
+    poly.setAttribute("points", `${tl},${y0} ${tr},${y0} ${br},${y1} ${bl},${y1}`);
     poly.setAttribute("fill", `url(#${gradId})`);
     svg.appendChild(poly);
     setTimeout(() => poly.classList.add("animate-in"), 20);
 
-    // top rim ellipse — the "3D vessel" cue from the reference funnel
+    // rim ellipse at the top of every band — the "stacked discs" cue from the reference
     const cap = document.createElementNS(svgNS, "ellipse");
     cap.classList.add("vfunnel-cap");
-    cap.style.transitionDelay = (i * 220 + 350) + "ms";
-    cap.setAttribute("cx", trackW/2); cap.setAttribute("cy", capRy); cap.setAttribute("rx", topW/2); cap.setAttribute("ry", capRy);
+    cap.style.transitionDelay = (i * 200 + 300) + "ms";
+    cap.setAttribute("cx", cx); cap.setAttribute("cy", y0); cap.setAttribute("rx", topW/2); cap.setAttribute("ry", capRy);
     cap.setAttribute("fill", colors.top);
     svg.appendChild(cap);
     setTimeout(() => cap.classList.add("animate-in"), 20);
 
+    if (i === n - 1) {
+      const bottomCap = document.createElementNS(svgNS, "ellipse");
+      bottomCap.classList.add("vfunnel-cap");
+      bottomCap.style.transitionDelay = (i * 200 + 320) + "ms";
+      bottomCap.setAttribute("cx", cx); bottomCap.setAttribute("cy", y1); bottomCap.setAttribute("rx", botW/2); bottomCap.setAttribute("ry", capRy);
+      bottomCap.setAttribute("fill", colors.base);
+      svg.appendChild(bottomCap);
+      setTimeout(() => bottomCap.classList.add("animate-in"), 20);
+    }
+
     const valueText = document.createElementNS(svgNS, "text");
     valueText.classList.add("vfunnel-value-text");
-    valueText.style.transitionDelay = (i * 220 + 380) + "ms";
-    valueText.setAttribute("x", trackW/2); valueText.setAttribute("y", rowH/2 + 2);
+    valueText.style.transitionDelay = (i * 200 + 360) + "ms";
+    valueText.setAttribute("x", cx); valueText.setAttribute("y", (y0 + y1) / 2 + 2);
     valueText.textContent = "0";
     svg.appendChild(valueText);
-    animateCount(valueText, s.value, { delay: i * 220 + 250 });
+    animateCount(valueText, s.value, { delay: i * 200 + 220 });
     setTimeout(() => valueText.classList.add("animate-in"), 20);
 
     const hit = document.createElementNS(svgNS, "rect");
-    hit.setAttribute("x", 0); hit.setAttribute("y", 0); hit.setAttribute("width", trackW); hit.setAttribute("height", rowH);
+    hit.setAttribute("x", 0); hit.setAttribute("y", y0); hit.setAttribute("width", trackW); hit.setAttribute("height", rowH);
     hit.setAttribute("fill", "transparent");
-    svg.appendChild(hit);
-
-    row.append(chip, svg);
     const desc = GLOSSARY[s.name] ? GLOSSARY[s.name].desc : (s.desc || "");
     const crText = (i > 0 && steps[i-1].value > 0) ? fmtPct(s.value / steps[i-1].value * 100) : "";
     const tipBody = (desc ? desc + " " : "") + (crText ? `Конверсия от предыдущего шага: ${crText}.` : "");
-    bindTip(svg, s.label, tipBody);
-    wrap.appendChild(row);
+    bindTip(hit, s.label, tipBody);
+    svg.appendChild(hit);
+
+    if (i > 0 && steps[i-1].value > 0) {
+      const pill = document.createElement("div"); pill.className = "vfunnel-pill";
+      const cr = fmtPct(s.value / steps[i-1].value * 100);
+      pill.innerHTML = `<span class="arrow">&#8595;</span><span>${cr}</span>`;
+      pill.style.top = (y0 / totalH * 100) + "%";
+      pill.style.transitionDelay = (i * 200 + 500) + "ms";
+      graphic.appendChild(pill);
+      setTimeout(() => pill.classList.add("animate-in"), 20);
+    }
   });
-  return wrap;
+
+  graphic.appendChild(svg);
+  outer.append(labels, graphic);
+  return outer;
 }
 
 // Ranked horizontal bar list — single hue, magnitude comparison (dataviz: sequential = safe default for "compare magnitude")
@@ -1065,7 +1077,10 @@ function renderTab(containerId, p, deviceLabel) {
       name, label: GLOSSARY[name].label, value: (events[name] && events[name].count) || 0, desc: GLOSSARY[name].desc,
     })),
   ];
-  const signupRate = totals.sessions > 0 ? funnelSteps[1].value / totals.sessions * 100 : 0;
+  // Both measured from the same starting point (клик «Регистрация» = sign_up_start)
+  // so the two cards answer two different questions about the same group of people,
+  // not two overlapping slices of the funnel.
+  const signupRate = funnelSteps[1].value > 0 ? funnelSteps[2].value / funnelSteps[1].value * 100 : 0;
   const completionRate = funnelSteps[1].value > 0 ? funnelSteps[3].value / funnelSteps[1].value * 100 : 0;
 
   // ---- KPI grid: headline numbers, including the funnel's key conversions
@@ -1073,8 +1088,8 @@ function renderTab(containerId, p, deviceLabel) {
   const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
   kpiGrid.appendChild(kpiTile("Сессии", totals.sessions, "sessions"));
   kpiGrid.appendChild(kpiTile("Пользователи", totals.totalUsers, "totalUsers"));
-  kpiGrid.appendChild(kpiTile("Конверсия в регистрацию", signupRate, "signupRate", { format: v => fmtPct(v) }));
-  kpiGrid.appendChild(kpiTile("Конверсия в отправку формы", completionRate, "completionRate", { format: v => fmtPct(v) }));
+  kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v) }));
+  kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v) }));
   kpiGrid.appendChild(kpiTile("Ср. длительность сессии", totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
   kpiGrid.appendChild(kpiTile("Показатель отказов", totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
   kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0

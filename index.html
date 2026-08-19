@@ -605,6 +605,38 @@ function normalizeMethodDetail(rawDetail) {
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => b.count - a.count);
 }
+
+// social_footer_click/login_social_click values are branded redirect links
+// (e.g. http://smbwtg.xyz/ — "smbw" + 2-letter platform code + .xyz), not
+// readable names. Decode by the 2-letter code, falling back to matching the
+// real platform domain directly (e.g. vk.com links that skip the redirector).
+function normalizeSocialDetail(rawDetail) {
+  const CODE_TO_NAME = { tg: "Telegram", vk: "VK", ig: "Instagram", fb: "Facebook", tw: "X (Twitter)", ok: "Одноклассники", wa: "WhatsApp", yt: "YouTube" };
+  function classify(raw) {
+    const s = (raw || "").toLowerCase();
+    if (s === "(not set)" || s === "(none)" || !s) return "Не определено";
+    const shortlinkMatch = s.match(/smbw([a-z]{2})\.xyz/);
+    if (shortlinkMatch && CODE_TO_NAME[shortlinkMatch[1]]) return CODE_TO_NAME[shortlinkMatch[1]];
+    if (s.includes("vk.com") || s.includes("vkontakte")) return "VK";
+    if (s.includes("t.me") || s.includes("telegram")) return "Telegram";
+    if (s.includes("instagram.com")) return "Instagram";
+    if (s.includes("facebook.com")) return "Facebook";
+    if (s.includes("twitter.com") || s.includes("x.com")) return "X (Twitter)";
+    if (s.includes("ok.ru") || s.includes("одноклассник")) return "Одноклассники";
+    if (s.includes("whatsapp")) return "WhatsApp";
+    if (s.includes("mail.ru")) return "Mail.Ru";
+    if (s.includes("yandex") || s.includes("яндекс")) return "Яндекс";
+    return "Другое";
+  }
+  const buckets = {};
+  rawDetail.forEach(d => {
+    const key = classify(d.value);
+    buckets[key] = (buckets[key] || 0) + (d.count || 0);
+  });
+  return Object.entries(buckets)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+}
 const fmtDur = sec => {
   sec = Math.round(sec);
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -1066,19 +1098,29 @@ function buildTable(headers, rows, alignRightFrom) {
 function buildSourceGroupTable(channels, sources) {
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th></tr>`;
+  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right">Регистрации</th><th style="text-align:right">Конверсия</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const sortedChannels = (channels||[]).slice().sort((a,b) => b.sessions - a.sessions);
   sortedChannels.forEach(ch => {
+    const members = (sources||[]).filter(s => s.channel === ch.name).sort((a,b) => b.sessions - a.sessions);
+    // channel header row's rate columns are session-weighted aggregates of its member sources
+    const chSignUps = members.reduce((s,m) => s + (m.signUps||0), 0);
+    const bounceWeighted = members.reduce((s,m) => s + (m.sessions||0) * (m.bounceRate||0), 0);
+    const engagedWeighted = members.reduce((s,m) => s + (m.sessions||0) * (m.engagementRate||0), 0);
+    const memberSessions = members.reduce((s,m) => s + (m.sessions||0), 0) || 1;
+
     const trh = document.createElement("tr"); trh.className = "group-row";
     const tdName = document.createElement("td"); tdName.className = "name-cell"; tdName.textContent = channelLabel(ch.name);
     const tdS = document.createElement("td"); tdS.className = "num"; tdS.textContent = fmtInt(ch.sessions);
     const tdU = document.createElement("td"); tdU.className = "num"; tdU.textContent = fmtInt(ch.totalUsers);
-    trh.append(tdName, tdS, tdU);
+    const tdReg = document.createElement("td"); tdReg.className = "num"; tdReg.textContent = chSignUps ? fmtInt(chSignUps) : "—";
+    const tdConv = document.createElement("td"); tdConv.className = "num"; tdConv.textContent = ch.sessions ? fmtPct(chSignUps / ch.sessions * 100) : "—";
+    const tdBounce = document.createElement("td"); tdBounce.className = "num"; tdBounce.textContent = members.length ? fmtPct(bounceWeighted / memberSessions) : "—";
+    const tdEng = document.createElement("td"); tdEng.className = "num"; tdEng.textContent = members.length ? fmtPct(engagedWeighted / memberSessions) : "—";
+    trh.append(tdName, tdS, tdU, tdReg, tdConv, tdBounce, tdEng);
     if (CHANNEL_TIPS[ch.name]) bindTip(trh, channelLabel(ch.name), CHANNEL_TIPS[ch.name]);
     tbody.appendChild(trh);
-    const members = (sources||[]).filter(s => s.channel === ch.name).sort((a,b) => b.sessions - a.sessions);
     const VISIBLE = 6;
     const makeRow = (m, hidden) => {
       const tr = document.createElement("tr"); tr.className = "sub-row";
@@ -1086,7 +1128,11 @@ function buildSourceGroupTable(channels, sources) {
       const td1 = document.createElement("td"); td1.className = "name-cell"; td1.textContent = m.name;
       const td2 = document.createElement("td"); td2.className = "num"; td2.textContent = fmtInt(m.sessions);
       const td3 = document.createElement("td"); td3.className = "num"; td3.textContent = fmtInt(m.totalUsers);
-      tr.append(td1, td2, td3);
+      const td4 = document.createElement("td"); td4.className = "num"; td4.textContent = m.signUps ? fmtInt(m.signUps) : "—";
+      const td5 = document.createElement("td"); td5.className = "num"; td5.textContent = m.sessions ? fmtPct((m.signUps||0) / m.sessions * 100) : "—";
+      const td6 = document.createElement("td"); td6.className = "num"; td6.textContent = m.bounceRate != null ? fmtPct(m.bounceRate) : "—";
+      const td7 = document.createElement("td"); td7.className = "num"; td7.textContent = m.engagementRate != null ? fmtPct(m.engagementRate) : "—";
+      tr.append(td1, td2, td3, td4, td5, td6, td7);
       return tr;
     };
     members.slice(0, VISIBLE).forEach(m => tbody.appendChild(makeRow(m, false)));
@@ -1095,7 +1141,7 @@ function buildSourceGroupTable(channels, sources) {
       const hiddenRows = rest.map(m => makeRow(m, true));
       hiddenRows.forEach(r => tbody.appendChild(r));
       const toggleTr = document.createElement("tr"); toggleTr.className = "sub-row";
-      const toggleTd = document.createElement("td"); toggleTd.className = "name-cell"; toggleTd.colSpan = 3;
+      const toggleTd = document.createElement("td"); toggleTd.className = "name-cell"; toggleTd.colSpan = 7;
       const toggleBtn = document.createElement("span");
       toggleBtn.style.color = "var(--series-1)"; toggleBtn.style.cursor = "pointer"; toggleBtn.style.textDecoration = "underline dotted";
       toggleBtn.textContent = `Показать ещё ${rest.length} источников`;
@@ -1455,6 +1501,8 @@ function renderTab(containerId, p, deviceLabel) {
     // specific "method" breakdowns into one Russian bucket per real method.
     const detail = (name === "sign_up_method_select" || name === "sign_up_success")
       ? normalizeMethodDetail(filtered)
+      : (name === "social_footer_click" || name === "login_social_click")
+      ? normalizeSocialDetail(filtered)
       : filtered;
     const hasDetail = detail.length > 0;
 
@@ -1537,11 +1585,17 @@ function mergeSources(a, b) {
   const map = new Map();
   [...(a||[]), ...(b||[])].forEach(row => {
     const key = row.channel + "||" + row.name;
-    if (!map.has(key)) map.set(key, { channel: row.channel, name: row.name, sessions: 0, totalUsers: 0 });
+    if (!map.has(key)) map.set(key, { channel: row.channel, name: row.name, sessions: 0, totalUsers: 0, signUps: 0, _bounceW: 0, _engW: 0 });
     const acc = map.get(key);
-    acc.sessions += row.sessions; acc.totalUsers += row.totalUsers;
+    acc.sessions += row.sessions; acc.totalUsers += row.totalUsers; acc.signUps += row.signUps || 0;
+    acc._bounceW += (row.sessions||0) * (row.bounceRate||0);
+    acc._engW += (row.sessions||0) * (row.engagementRate||0);
   });
-  return Array.from(map.values()).sort((x,y) => y.sessions - x.sessions);
+  return Array.from(map.values()).map(acc => ({
+    channel: acc.channel, name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, signUps: acc.signUps,
+    bounceRate: acc.sessions ? acc._bounceW / acc.sessions : 0,
+    engagementRate: acc.sessions ? acc._engW / acc.sessions : 0,
+  })).sort((x,y) => y.sessions - x.sessions);
 }
 function mergeTrend(a, b) {
   const map = new Map();

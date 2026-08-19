@@ -1457,13 +1457,45 @@ function renderTab(containerId, p, deviceLabel) {
   geoCard.appendChild(buildRankedBars(geoBars));
   geoBody.appendChild(geoCard);
 
-  const lpBody = collapsibleSection(el, "Топ посадочных страниц", `с конверсией в ${GLOSSARY.sign_up_start.label.toLowerCase()}`);
+  const lpBody = collapsibleSection(el, "Топ посадочных страниц", "качество каждой страницы: отказы, вовлечённость, регистрации");
   const lpCard = document.createElement("div"); lpCard.className = "card";
-  const lpRows = (landingPages || []).slice(0, 8).map(l => {
-    const cr = l.sessions > 0 ? fmtPct(l.goal / l.sessions * 100) : "—";
-    return [l.name || "/", fmtInt(l.sessions), fmtInt(l.goal || 0), cr];
+  const lpTable = document.createElement("table"); lpTable.className = "data-table";
+  const lpThead = document.createElement("thead");
+  lpThead.innerHTML = `<tr>
+    <th>Страница</th>
+    <th style="text-align:right">Сессии</th>
+    <th style="text-align:right" title="Сколько страниц в среднем просматривает посетитель за визит, начавшийся с этой страницы.">Стр./сессию ⓘ</th>
+    <th style="text-align:right" title="Доля сессий без какого-либо взаимодействия с сайтом (или короче 10 сек и без второй страницы).">Отказы ⓘ</th>
+    <th style="text-align:right" title="Доля сессий с осмысленным взаимодействием (10+ сек, или 2+ страницы, или ключевое событие).">Вовлечённость ⓘ</th>
+    <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»), а не просто клик по кнопке.">Регистраций ⓘ</th>
+    <th style="text-align:right">Конверсия</th>
+  </tr>`;
+  lpTable.appendChild(lpThead);
+  const lpTbody = document.createElement("tbody");
+  const lpSorted = (landingPages || []).slice().sort((a,b) => b.sessions - a.sessions).slice(0, 10);
+  lpSorted.forEach(l => {
+    const tr = document.createElement("tr");
+    const perSession = l.sessions > 0 ? (l.screenPageViews / l.sessions).toFixed(1).replace(".", ",") : "—";
+    const cr = l.sessions > 0 && l.goal ? fmtPct(l.goal / l.sessions * 100) : "—";
+    const cells = [
+      l.name || "/",
+      fmtInt(l.sessions),
+      perSession,
+      l.bounceRate != null ? fmtPct(l.bounceRate) : "—",
+      l.engagementRate != null ? fmtPct(l.engagementRate) : "—",
+      l.goal ? fmtInt(l.goal) : "—",
+      cr,
+    ];
+    cells.forEach((c, i) => {
+      const td = document.createElement("td");
+      if (i === 0) td.className = "name-cell"; else td.className = "num";
+      td.textContent = c;
+      tr.appendChild(td);
+    });
+    lpTbody.appendChild(tr);
   });
-  lpCard.appendChild(buildTable(["Страница", "Сессии", "Начали регистрацию", "Конверсия"], lpRows, 1));
+  lpTable.appendChild(lpTbody);
+  lpCard.appendChild(lpTable);
   lpBody.appendChild(lpCard);
 
   const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители");

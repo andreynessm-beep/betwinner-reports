@@ -606,6 +606,27 @@ function normalizeMethodDetail(rawDetail) {
     .sort((a, b) => b.count - a.count);
 }
 
+// app_download_click's "platform" shows up in whatever language the visitor's
+// site is in ("Android", "안드로이드", "iOS", "آيفون", ...) — collapse to two
+// canonical buckets since there are only ever two real mobile platforms.
+function normalizePlatformDetail(rawDetail) {
+  function classify(raw) {
+    const s = (raw || "").toLowerCase();
+    if (s === "(not set)" || s === "(none)" || !s) return "Не определено";
+    if (s.includes("android") || s.includes("안드로이드") || s.includes("андроид")) return "Android";
+    if (s.includes("ios") || s.includes("iphone") || s.includes("айфон") || s.includes("آيفون")) return "iOS";
+    return "Другое";
+  }
+  const buckets = {};
+  rawDetail.forEach(d => {
+    const key = classify(d.value);
+    buckets[key] = (buckets[key] || 0) + (d.count || 0);
+  });
+  return Object.entries(buckets)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 // social_footer_click/login_social_click values are branded redirect links
 // (e.g. http://smbwtg.xyz/ — "smbw" + 2-letter platform code + .xyz), not
 // readable names. Decode by the 2-letter code, falling back to matching the
@@ -1503,6 +1524,8 @@ function renderTab(containerId, p, deviceLabel) {
       ? normalizeMethodDetail(filtered)
       : (name === "social_footer_click" || name === "login_social_click")
       ? normalizeSocialDetail(filtered)
+      : (name === "app_download_click")
+      ? normalizePlatformDetail(filtered)
       : filtered;
     const hasDetail = detail.length > 0;
 

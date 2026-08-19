@@ -502,7 +502,7 @@ const GLOSSARY = {
   cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить».", detailLabel: "Какая кнопка" },
   sign_up_start:           { label: "Старт регистрации",             desc: "Клиент нажал кнопку «Регистрация» — начал создавать аккаунт." },
   sign_up_method_select:   { label: "Выбор способа регистрации",     desc: "Клиент выбрал способ регистрации — например, по телефону, почте или через соцсеть.", detailLabel: "Какой способ" },
-  sign_up_submit_click:    { label: "Отправка формы регистрации",    desc: "Клиент нажал финальную кнопку отправки формы регистрации.", detailLabel: "Каким способом" },
+  sign_up_success:         { label: "Успешная регистрация",          desc: "Клиент успешно завершил регистрацию (подтверждено появлением экрана «Регистрация завершена», а не просто кликом по кнопке).", detailLabel: "Каким способом" },
   nav_click:               { label: "Клик по меню",                  desc: "Клик по пункту главного меню сайта.", detailLabel: "Какой пункт меню" },
   footer_click:            { label: "Клик по ссылке в подвале",      desc: "Клик по одной из обычных ссылок в самом низу сайта.", detailLabel: "Какая ссылка" },
   promo_click:             { label: "Клик по промо-баннеру",         desc: "Клик по одному из рекламных баннеров на главной странице.", detailLabel: "Какой баннер" },
@@ -573,7 +573,10 @@ function bindTip(el, title, body) {
 
 /* ===================== formatting ===================== */
 const fmtInt = n => new Intl.NumberFormat("ru-RU").format(Math.round(n));
-const fmtPct = n => (Math.round(n * 10) / 10).toString().replace(".", ",") + "%";
+// form_start (GA4 auto-detected, can fire more than once per session) isn't a
+// strict 1:1 step against sign_up_start, so the ratio can mathematically exceed
+// 100% — clamp the display since a conversion rate can't exceed 100% by definition.
+const fmtPct = n => (Math.round(Math.min(n, 100) * 10) / 10).toString().replace(".", ",") + "%";
 const fmtDur = sec => {
   sec = Math.round(sec);
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -904,6 +907,9 @@ function buildTrendChart(points, key, label) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.classList.add("trend-svg");
 
+  // No numeric axis labels here — every point already carries its own value
+  // label, and a "max" axis label in the top-left corner collides with a
+  // near-max first point's label (both land in the same few pixels).
   [0, max].forEach(v => {
     const y = yFor(v);
     const line = document.createElementNS(svgNS, "line");
@@ -911,10 +917,6 @@ function buildTrendChart(points, key, label) {
     line.setAttribute("y1", y); line.setAttribute("y2", y);
     line.setAttribute("stroke", cssVar("--grid")); line.setAttribute("stroke-width", "1");
     svg.appendChild(line);
-    const t = document.createElementNS(svgNS, "text");
-    t.setAttribute("x", 4); t.setAttribute("y", y + 3); t.setAttribute("class", "trend-axis-label");
-    t.textContent = fmtInt(v);
-    svg.appendChild(t);
   });
 
   const gradId = "trendArea" + Math.random().toString(36).slice(2,7);
@@ -1239,7 +1241,7 @@ function renderTab(containerId, p, deviceLabel) {
 
     const stepsFrom = fEvents => [
       { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
-      ...["sign_up_start", "form_start", "sign_up_submit_click"].map(name => ({
+      ...["sign_up_start", "form_start", "sign_up_success"].map(name => ({
         name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
       })),
     ];

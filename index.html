@@ -497,7 +497,8 @@ const GLOSSARY = {
   user_engagement:        { label: "Вовлечённость",                 desc: "Посетитель провёл на сайте достаточно времени и был активен, а не просто зашёл и сразу ушёл.", system: true },
   scroll:                 { label: "Прокрутка страницы",            desc: "Посетитель прокрутил страницу вниз почти до конца (около 90%).", system: true },
   page_load_time:         { label: "Время загрузки страницы",       desc: "Сколько миллисекунд реально грузилась страница у посетителя.", system: true },
-  form_start:             { label: "Начало заполнения формы",       desc: "Клиент начал заполнять форму (например, регистрации)." },
+  form_start:             { label: "Начало заполнения формы (любой)", desc: "Клиент начал заполнять любую форму на сайте (не только регистрацию) — стандартное автоматическое событие GA4." },
+  reg_form_start:         { label: "Начало заполнения формы",       desc: "Клиент начал заполнять именно форму регистрации (кликнул в одно из её полей)." },
   bet_slip_view:          { label: "Просмотр купона ставок",        desc: "У клиента на экране появился купон для сбора ставок." },
   cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить».", detailLabel: "Какая кнопка" },
   sign_up_start:           { label: "Старт регистрации",             desc: "Клиент нажал кнопку «Регистрация» — начал создавать аккаунт." },
@@ -1256,7 +1257,7 @@ function renderTab(containerId, p, deviceLabel) {
 
     const stepsFrom = fEvents => [
       { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
-      ...["sign_up_start", "form_start", "sign_up_success"].map(name => ({
+      ...["sign_up_start", "reg_form_start", "sign_up_success"].map(name => ({
         name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
       })),
     ];

@@ -1119,7 +1119,7 @@ function buildTable(headers, rows, alignRightFrom) {
 function buildSourceGroupTable(channels, sources) {
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right">Регистрации</th><th style="text-align:right">Конверсия</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
+  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right" title="Клик по кнопке «Регистрация» — то же самое, что шаг «Старт регистрации» в воронке выше. Это НЕ завершённая регистрация.">Начали регистрацию ⓘ</th><th style="text-align:right">Конверсия в старт</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const sortedChannels = (channels||[]).slice().sort((a,b) => b.sessions - a.sessions);

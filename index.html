@@ -1119,7 +1119,7 @@ function buildTable(headers, rows, alignRightFrom) {
 function buildSourceGroupTable(channels, sources) {
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right" title="Клик по кнопке «Регистрация» — то же самое, что шаг «Старт регистрации» в воронке выше. Это НЕ завершённая регистрация.">Начали регистрацию ⓘ</th><th style="text-align:right">Конверсия в старт</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
+  thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»), а не просто клик по кнопке.">Успешных регистраций ⓘ</th><th style="text-align:right">Конверсия</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const sortedChannels = (channels||[]).slice().sort((a,b) => b.sessions - a.sessions);
@@ -1372,8 +1372,8 @@ function renderTab(containerId, p, deviceLabel) {
     const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
     kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
-    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(kpiSteps[1].value)}` }));
-    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[3].value)} из ${fmtInt(kpiSteps[1].value)}` }));
+    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} человек` }));
+    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[3].value)} человек` }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));

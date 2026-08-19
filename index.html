@@ -1547,7 +1547,7 @@ function renderTab(containerId, p, deviceLabel) {
     const info = GLOSSARY[name];
     const data = events[name];
     const rawDetail = (eventDetails && eventDetails[name]) || [];
-    const filtered = rawDetail.filter(d => d.value && d.value !== "(пусто)");
+    const filtered = rawDetail.filter(d => d.value && d.value !== "(пусто)" && d.value !== "(not set)" && d.value !== "(none)");
     // The site is multi-language (visible tab text is captured as-is), so the
     // same registration method shows up as a dozen near-duplicate strings —
     // "By phone", "Por telefono", "از طریق تلفن", etc. Normalize those two

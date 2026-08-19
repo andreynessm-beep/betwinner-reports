@@ -578,6 +578,33 @@ const fmtInt = n => new Intl.NumberFormat("ru-RU").format(Math.round(n));
 // strict 1:1 step against sign_up_start, so the ratio can mathematically exceed
 // 100% — clamp the display since a conversion rate can't exceed 100% by definition.
 const fmtPct = n => (Math.round(Math.min(n, 100) * 10) / 10).toString().replace(".", ",") + "%";
+
+// The site's registration-method labels are captured in whatever language the
+// visitor is browsing in ("By phone", "Por telefono", "از طریق تلفن", ...) —
+// classify by keyword (checking specific social network names first, since
+// e.g. "Mail.Ru" contains "mail" but is a social login, not the email method)
+// and re-aggregate counts into one Russian bucket per real method.
+function normalizeMethodDetail(rawDetail) {
+  const SOCIAL_NETWORK_NAMES = ["telegram", "vkontakte", " vk", "vk.", "одноклассник", "ok.ru", "yandex", "яндекс", "mail.ru", "whatsapp", "viber"];
+  function classify(raw) {
+    const s = (raw || "").toLowerCase();
+    if (SOCIAL_NETWORK_NAMES.some(n => s.includes(n))) return "Соцсети и мессенджеры";
+    if (s.includes("clic") || s.includes("click") || s.includes("1 клик") || s.includes("одним кликом")) return "В 1 клик";
+    if (s.includes("phone") || s.includes("tel") || s.includes("телефон") || s.includes("تلفن")) return "По телефону";
+    if (s.includes("mail") || s.includes("почт")) return "По E-mail";
+    if (s.includes("social") || s.includes("sociales") || s.includes("mensaj") || s.includes("соцсет") || s.includes("messeng")) return "Соцсети и мессенджеры";
+    if (s === "(not set)" || s === "(none)") return "Не определено";
+    return "Другое";
+  }
+  const buckets = {};
+  rawDetail.forEach(d => {
+    const key = classify(d.value);
+    buckets[key] = (buckets[key] || 0) + (d.count || 0);
+  });
+  return Object.entries(buckets)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count);
+}
 const fmtDur = sec => {
   sec = Math.round(sec);
   const m = Math.floor(sec / 60), s = sec % 60;
@@ -1421,7 +1448,14 @@ function renderTab(containerId, p, deviceLabel) {
     const info = GLOSSARY[name];
     const data = events[name];
     const rawDetail = (eventDetails && eventDetails[name]) || [];
-    const detail = rawDetail.filter(d => d.value && d.value !== "(пусто)");
+    const filtered = rawDetail.filter(d => d.value && d.value !== "(пусто)");
+    // The site is multi-language (visible tab text is captured as-is), so the
+    // same registration method shows up as a dozen near-duplicate strings —
+    // "By phone", "Por telefono", "از طریق تلفن", etc. Normalize those two
+    // specific "method" breakdowns into one Russian bucket per real method.
+    const detail = (name === "sign_up_method_select" || name === "sign_up_success")
+      ? normalizeMethodDetail(filtered)
+      : filtered;
     const hasDetail = detail.length > 0;
 
     const tr = document.createElement("tr");

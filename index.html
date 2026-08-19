@@ -927,16 +927,31 @@ function buildTrendChart(points, key, label) {
   const gs2 = document.createElementNS(svgNS, "stop"); gs2.setAttribute("offset", "100%"); gs2.setAttribute("stop-color", cssVar("--brand-a")); gs2.setAttribute("stop-opacity", "0");
   grad.append(gs1, gs2); defs.appendChild(grad); svg.appendChild(defs);
 
+  // Catmull-Rom -> cubic-bezier smoothing so the line reads as a smooth curve
+  // instead of straight jagged segments once there are 3+ days of data.
+  const coords = points.map((p, i) => [xFor(i), yFor(p[key])]);
+  const smoothPath = pts => {
+    if (pts.length < 3) return "M " + pts.map(c => c.join(",")).join(" L ");
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+  const smoothD = smoothPath(coords);
   const areaPts = points.map((p,i) => `${xFor(i)},${yFor(p[key])}`).join(" L ");
   const area = document.createElementNS(svgNS, "path");
-  area.setAttribute("d", `M ${xFor(0)},${yFor(0)} L ${areaPts} L ${xFor(points.length-1)},${yFor(0)} Z`);
+  area.setAttribute("d", `${smoothD} L ${xFor(points.length-1)},${yFor(0)} L ${xFor(0)},${yFor(0)} Z`);
   area.setAttribute("fill", `url(#${gradId})`);
   area.style.opacity = "0"; area.style.transition = "opacity .6s ease .4s";
   svg.appendChild(area);
   setTimeout(() => { area.style.opacity = "1"; }, 20);
 
   const line = document.createElementNS(svgNS, "path");
-  line.setAttribute("d", `M ${areaPts}`);
+  line.setAttribute("d", smoothD);
   line.setAttribute("fill", "none");
   line.setAttribute("stroke", cssVar("--series-1"));
   line.setAttribute("stroke-width", "3");

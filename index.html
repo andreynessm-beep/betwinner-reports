@@ -594,10 +594,10 @@ function normalizeMethodDetail(rawDetail) {
     if (s === "email" || s.includes("mail") || s.includes("почт")) return "По E-mail";
     if (s.includes("social") || s.includes("sociales") || s.includes("mensaj") || s.includes("соцсет") || s.includes("messeng")) return "Соцсети и мессенджеры";
     // "unknown" is a real value the site itself sends (not a tracking gap) --
-    // same meaning as GA's own "(not set)", so it belongs in the same bucket
-    // rather than the generic/undiagnosed "Другое".
-    if (s === "(not set)" || s === "(none)" || s === "unknown" || s === "") return "Не определено";
-    return "Другое";
+    // same meaning as GA's own "(not set)". Anything else unrecognized also
+    // folds in here rather than a separate "Другое" bucket -- if we can't
+    // name the method, say so plainly instead of a vague catch-all label.
+    return "Не определено";
   }
   const buckets = {};
   rawDetail.forEach(d => {

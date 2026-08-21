@@ -444,6 +444,17 @@
   #tt .tt-title { font-weight: 700; margin-bottom: 2px; }
 
   footer.report-footer { margin-top: 40px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--grid); padding-top: 14px; }
+
+  #loading-indicator {
+    display: flex; align-items: center; gap: 12px; justify-content: center;
+    padding: 60px 20px; color: var(--text-secondary); font-size: 14px;
+  }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--brand-a);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -474,12 +485,14 @@
     </div>
   </header>
 
-  <div class="period-picker" id="period-picker">
+  <div id="loading-indicator"><div class="spinner"></div><span>Загружаем данные отчёта…</span></div>
+
+  <div class="period-picker" id="period-picker" style="display:none;">
     <div class="period-row" id="period-row-months"></div>
     <div class="period-row" id="period-row-weeks" style="display:none;"></div>
   </div>
 
-  <div class="tabs" id="device-tabs">
+  <div class="tabs" id="device-tabs" style="display:none;">
     <button class="tab-btn active" data-tab="combined">Общее</button>
     <button class="tab-btn" data-tab="desktop">ПК</button>
     <button class="tab-btn" data-tab="mobile">Моб</button>
@@ -2006,8 +2019,18 @@ function renderAll(site) {
 }
 
 async function initReport() {
-  const res = await fetch("data.json", { cache: "no-store" });
-  const data = await res.json();
+  let data;
+  try {
+    // data.json is a large file (multi-site + per-day granular data) --
+    // can take real time on a slow connection, hence the loading spinner
+    // shown in the HTML by default rather than a silently-blank page.
+    const res = await fetch("data.json", { cache: "no-store" });
+    data = await res.json();
+  } catch (e) {
+    document.getElementById("loading-indicator").innerHTML =
+      `<span>Не удалось загрузить данные отчёта. Проверьте соединение и обновите страницу.<br><small>${e.message || e}</small></span>`;
+    return;
+  }
   REPORT_DATA = data;
   document.getElementById("generated-at").textContent = new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
   DEMO_MODE = !!data.demo_mode;
@@ -2020,6 +2043,9 @@ async function initReport() {
   siteSelect.addEventListener("change", () => renderAll(siteSelect.value));
 
   renderAll("betwinner.com");
+
+  document.getElementById("loading-indicator").style.display = "none";
+  document.getElementById("device-tabs").style.display = "";
 }
 
 /* ===================== tabs ===================== */

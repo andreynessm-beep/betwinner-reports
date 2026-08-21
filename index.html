@@ -131,6 +131,20 @@
     padding: 8px 14px; border-radius: 999px; white-space: nowrap;
   }
   .period-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #34e08a; box-shadow: 0 0 0 3px rgba(52,224,138,0.25); }
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  select.top-select {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+    color: #fff; font-size: 12.5px; font-weight: 600;
+    padding: 8px 12px; border-radius: 999px; cursor: pointer; appearance: none;
+    -webkit-appearance: none;
+  }
+  select.top-select:hover { background: rgba(255,255,255,0.14); }
+  select.top-select option { color: #111; background: #fff; }
+  .site-lite-note {
+    display: flex; align-items: center; gap: 10px; padding: 14px 18px; margin-bottom: 20px;
+    background: color-mix(in srgb, var(--series-4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--series-4) 35%, transparent);
+    border-radius: 12px; font-size: 13px; color: var(--text-secondary);
+  }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 24px; position: relative; }
   .tab-btn {
@@ -439,14 +453,23 @@
     <div class="header-left">
       <div class="logo-mark">bw</div>
       <div>
-        <h1>betwinner.com — веб-аналитика</h1>
-        <div class="sub">Обновлено: <b id="generated-at">—</b> · Источник: GA4 · дефолт-домен, шаблон для остальных</div>
+        <h1 id="report-title">betwinner.com — веб-аналитика</h1>
+        <div class="sub" id="report-sub">Обновлено: <b id="generated-at">—</b> · Источник: GA4 · дефолт-домен, шаблон для остальных</div>
       </div>
     </div>
-    <div class="period-badge"><span class="dot"></span><span id="period-label">с 17.08.2026</span></div>
+    <div class="header-controls">
+      <select id="site-switcher" class="top-select"></select>
+      <select id="period-switcher" class="top-select">
+        <option value="all">Весь период</option>
+        <option value="week">Неделя</option>
+        <option value="month">Месяц</option>
+        <option value="quarter">Квартал</option>
+      </select>
+      <div class="period-badge"><span class="dot"></span><span id="period-label">с 17.08.2026</span></div>
+    </div>
   </header>
 
-  <div class="tabs">
+  <div class="tabs" id="device-tabs">
     <button class="tab-btn active" data-tab="combined">Общее</button>
     <button class="tab-btn" data-tab="desktop">ПК</button>
     <button class="tab-btn" data-tab="mobile">Моб</button>
@@ -455,6 +478,7 @@
   <div class="tab-panel active" id="panel-combined"></div>
   <div class="tab-panel" id="panel-desktop"></div>
   <div class="tab-panel" id="panel-mobile"></div>
+  <div id="panel-site-lite" style="display:none;"></div>
 
   <footer class="report-footer">
     Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 17.08.2026 (день запуска аналитики на betwinner.com). Автор: Андрей, веб-аналитик.
@@ -501,7 +525,8 @@ const GLOSSARY = {
   reg_form_start:         { label: "Начало заполнения формы",       desc: "Клиент начал заполнять именно форму регистрации (кликнул в одно из её полей)." },
   bet_slip_view:          { label: "Просмотр купона ставок",        desc: "У клиента на экране появился купон для сбора ставок." },
   cta_click:               { label: "Клик по главной кнопке",        desc: "Клиент нажал одну из ключевых кнопок сайта — «Войти», бонус или «Пополнить».", detailLabel: "Какая кнопка" },
-  sign_up_start:           { label: "Старт регистрации",             desc: "Клиент нажал кнопку «Регистрация» — начал создавать аккаунт." },
+  reg_page_view:           { label: "Зашли на регистрацию",          desc: "Клиент оказался на странице регистрации — любым способом (клик по кнопке на сайте, прямая ссылка из рекламы, редирект). Это встроенный просмотр страницы GA4, поэтому ловит 100% заходов, в отличие от клика по конкретной кнопке." },
+  sign_up_start:           { label: "Клик по кнопке «Регистрация»",  desc: "Клиент нажал именно кнопку «Регистрация» в шапке сайта (не считает переходы по прямым ссылкам/рекламе — это часть, а не весь трафик на регистрацию, см. «Зашли на регистрацию»)." },
   sign_up_method_select:   { label: "Выбор способа регистрации",     desc: "Клиент выбрал способ регистрации — например, по телефону, почте или через соцсеть.", detailLabel: "Какой способ" },
   sign_up_success:         { label: "Успешная регистрация",          desc: "Клиент успешно завершил регистрацию (подтверждено появлением экрана «Регистрация завершена», а не просто кликом по кнопке). 19–21.08 это событие задваивалось из-за бага в трекинге — баг исправлен, счёт идёт заново с 22.08, поэтому цифра пока небольшая.", detailLabel: "Каким способом" },
   nav_click:               { label: "Клик по меню",                  desc: "Клик по пункту главного меню сайта.", detailLabel: "Какой пункт меню" },
@@ -1354,17 +1379,23 @@ function renderTab(containerId, p, deviceLabel) {
 
     const stepsFrom = fEvents => [
       { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
-      ...["sign_up_start", "reg_form_start", "sign_up_success"].map(name => ({
+      ...["reg_form_start", "sign_up_success"].map(name => ({
         name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
       })),
     ];
-    // ---- KPI cards: always "all visitors", independent of the funnel toggle ----
+    // Only 3 real funnel steps -- a separate "arrived at registration page"
+    // step (reg_page_view, GA4's own pageview signal) turned out unreliable
+    // as a uniform cross-platform signal: on mobile the registration form can
+    // open as an in-page overlay without the URL/pagePath ever changing, so
+    // pageview filtering silently misses most mobile attempts (verified:
+    // mobile reg_page_view came in far BELOW reg_form_start, which is
+    // impossible if it were truly a superset step). reg_form_start is the one
+    // signal proven reliable on both platforms (fires on the form fields
+    // actually appearing, regardless of routing/modal mechanics), so it's the
+    // funnel's real step 1.
     const kpiSteps = stepsFrom(fEventsAll);
-    // Both measured from the same starting point (клик «Регистрация» = sign_up_start)
-    // so the two cards answer two different questions about the same group of people,
-    // not two overlapping slices of the funnel.
-    const signupRate = kpiSteps[1].value > 0 ? kpiSteps[2].value / kpiSteps[1].value * 100 : 0;
-    const completionRate = kpiSteps[1].value > 0 ? kpiSteps[3].value / kpiSteps[1].value * 100 : 0;
+    const signupRate = kpiSteps[0].value > 0 ? kpiSteps[1].value / kpiSteps[0].value * 100 : 0;
+    const completionRate = kpiSteps[1].value > 0 ? kpiSteps[2].value / kpiSteps[1].value * 100 : 0;
 
     // ---- THE funnel diagram: the one thing that reacts to the toggle ----
     const funnelSteps = stepsFrom(fEventsFunnel);
@@ -1375,8 +1406,8 @@ function renderTab(containerId, p, deviceLabel) {
     const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
     kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
-    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} человек` }));
-    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[3].value)} человек` }));
+    kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[1].value)} человек` }));
+    kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} человек` }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
@@ -1389,7 +1420,7 @@ function renderTab(containerId, p, deviceLabel) {
     if (funnelSteps[0].value > 0) {
       const wrap = document.createElement("div"); wrap.className = "funnel-highlight reveal";
       const t = document.createElement("div"); t.className = "funnel-highlight-title"; t.textContent = "Воронка регистрации";
-      const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → старт регистрации → заполнение формы → отправка формы";
+      const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → начали заполнять форму → успешная регистрация";
       wrap.append(t, h);
 
       if (hasFlat) {
@@ -1728,27 +1759,148 @@ function combineProps(desktop, mobile) {
   };
 }
 
+// Lightweight desktop+mobile merge for site-switcher domains (basic metrics
+// only -- no custom events yet, so no funnel/sources/event-details to merge).
+function combineLite(d, m) {
+  const dS = d.totals.sessions, mS = m.totals.sessions, sum = Math.max(dS + mS, 1);
+  return {
+    totals: {
+      sessions: dS + mS,
+      totalUsers: d.totals.totalUsers + m.totals.totalUsers,
+      screenPageViews: d.totals.screenPageViews + m.totals.screenPageViews,
+      averageSessionDuration: (d.totals.averageSessionDuration * dS + m.totals.averageSessionDuration * mS) / sum,
+      bounceRate: (d.totals.bounceRate * dS + m.totals.bounceRate * mS) / sum,
+      engagementRate: (d.totals.engagementRate * dS + m.totals.engagementRate * mS) / sum,
+    },
+    trend: mergeTrend(d.trend, m.trend),
+    channels: mergeBreakdown(d.channels, m.channels, ["sessions", "totalUsers"]),
+    countries: mergeBreakdown(d.countries, m.countries, ["sessions", "totalUsers"]),
+    browsers: mergeBreakdown(d.browsers, m.browsers, ["sessions"]),
+    operating_systems: mergeBreakdown(d.operating_systems, m.operating_systems, ["sessions"]),
+    new_vs_returning: {
+      new: (d.new_vs_returning?.new||0) + (m.new_vs_returning?.new||0),
+      returning: (d.new_vs_returning?.returning||0) + (m.new_vs_returning?.returning||0),
+      unclassified: (d.new_vs_returning?.unclassified||0) + (m.new_vs_returning?.unclassified||0),
+    },
+  };
+}
+
+// Basic-metrics view for domains that only have GTM/GA4 installed so far,
+// without the full custom event tracking plan (see the site switcher).
+function renderSiteLite(containerId, s, domain) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  if (s.error) {
+    const note = document.createElement("div"); note.className = "note-banner small";
+    note.innerHTML = `<b>Не удалось получить данные для ${domain}.</b> ${s.error}`;
+    el.appendChild(note);
+    return;
+  }
+  const note = document.createElement("div"); note.className = "site-lite-note";
+  note.innerHTML = `<span>ℹ️</span><span>На <b>${domain}</b> счётчик GTM/GA4 уже установлен, но детальная разметка событий (регистрация, клики) сюда ещё не перенесена — показаны только базовые метрики GA4.</span>`;
+  el.appendChild(note);
+
+  const kpiGrid = document.createElement("div"); kpiGrid.className = "kpi-grid";
+  kpiGrid.appendChild(kpiTile("Сессии", s.totals.sessions, "sessions"));
+  kpiGrid.appendChild(kpiTile("Пользователи", s.totals.totalUsers, "totalUsers"));
+  kpiGrid.appendChild(kpiTile("Ср. длительность сессии", s.totals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
+  kpiGrid.appendChild(kpiTile("Показатель отказов", s.totals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
+  kpiGrid.appendChild(kpiTile("Engagement rate", s.totals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
+  el.appendChild(kpiGrid);
+
+  const trendBody = collapsibleSection(el, "Динамика трафика по дням", "сессии в день");
+  const trendCard = document.createElement("div"); trendCard.className = "card";
+  trendCard.appendChild(buildTrendChart(s.trend || [], "sessions", "Сессии"));
+  trendBody.appendChild(trendCard);
+
+  const chBody = collapsibleSection(el, "Источники трафика", "по каналам");
+  const chCard = document.createElement("div"); chCard.className = "card";
+  const chBars = (s.channels||[]).slice(0, 10).map(c => ({ label: channelLabel(c.name), value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` }));
+  chCard.appendChild(buildRankedBars(chBars));
+  chBody.appendChild(chCard);
+
+  const geoBody = collapsibleSection(el, "География", "топ-10 стран по сессиям");
+  const geoCard = document.createElement("div"); geoCard.className = "card";
+  const geoBars = (s.countries||[]).slice(0, 10).map(c => ({ label: c.name, value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` }));
+  geoCard.appendChild(buildRankedBars(geoBars));
+  geoBody.appendChild(geoCard);
+
+  const techBody = collapsibleSection(el, "Устройства", "браузеры и операционные системы");
+  const techCard = document.createElement("div"); techCard.className = "card two-col";
+  techCard.appendChild(donutBlock("Браузеры", s.browsers, "sessions"));
+  techCard.appendChild(donutBlock("Операционные системы", s.operating_systems, "sessions"));
+  techBody.appendChild(techCard);
+}
+
 /* ===================== init ===================== */
 let DEMO_MODE = false;
-async function initReport() {
-  const res = await fetch("data.json", { cache: "no-store" });
-  const data = await res.json();
-  document.getElementById("generated-at").textContent = new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
-  DEMO_MODE = !!data.demo_mode;
+let REPORT_DATA = null;
+let CURRENT_PERIOD = "all";
 
-  const desktop = data.properties.desktop, mobile = data.properties.mobile;
-  const combined = combineProps(desktop, mobile);
+function applyPeriod(p, period) {
+  // Only totals/trend get swapped by the period switcher -- the funnel and
+  // event breakdowns stay cumulative-since-launch (too young a launch date
+  // for those to be meaningfully sliced by a short recent window yet, and
+  // period-specific funnel data isn't fetched to keep the report light).
+  if (period === "all" || !p.periods || !p.periods[period]) return p;
+  return { ...p, totals: p.periods[period].totals, trend: p.periods[period].trend };
+}
 
-  renderTab("panel-combined", combined, "ПК + Моб суммарно.");
-  renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
-  renderTab("panel-mobile", mobile, "мобильная версия сайта");
+function renderAll(period, site) {
+  const data = REPORT_DATA;
+  CURRENT_PERIOD = period;
+  const isMain = site === "betwinner.com";
+  document.getElementById("device-tabs").style.display = isMain ? "" : "none";
+  document.getElementById("panel-combined").style.display = isMain ? "" : "none";
+  document.getElementById("panel-desktop").style.display = "none";
+  document.getElementById("panel-mobile").style.display = "none";
+  document.getElementById("panel-site-lite").style.display = isMain ? "none" : "";
+  document.getElementById("period-switcher").style.display = isMain ? "" : "none";
 
-  // trigger the entrance transition (opacity/translateY -> visible) — must happen
-  // in a separate task after insertion, or the browser coalesces it with the
-  // initial style and no transition plays
+  if (isMain) {
+    const desktop = applyPeriod(data.properties.desktop, period);
+    const mobile = applyPeriod(data.properties.mobile, period);
+    const combined = combineProps(desktop, mobile);
+    renderTab("panel-combined", combined, "ПК + Моб суммарно.");
+    renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
+    renderTab("panel-mobile", mobile, "мобильная версия сайта");
+    // restore whichever device tab was active
+    const activeBtn = document.querySelector("#device-tabs .tab-btn.active") || document.querySelector("#device-tabs .tab-btn");
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("panel-" + activeBtn.dataset.tab).classList.add("active");
+    document.getElementById("report-title").textContent = "betwinner.com — веб-аналитика";
+    document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4 · дефолт-домен, шаблон для остальных`;
+  } else {
+    const siteData = data.sites[site];
+    const lite = siteData.error ? siteData : combineLite(siteData.desktop, siteData.mobile);
+    renderSiteLite("panel-site-lite", siteData.error ? siteData : lite, site);
+    document.getElementById("report-title").textContent = `${site} — веб-аналитика`;
+    document.getElementById("report-sub").innerHTML = `Обновлено: <b>${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4`;
+  }
   setTimeout(() => {
     document.querySelectorAll(".reveal:not(.revealed)").forEach(el => el.classList.add("revealed"));
   }, 20);
+}
+
+async function initReport() {
+  const res = await fetch("data.json", { cache: "no-store" });
+  const data = await res.json();
+  REPORT_DATA = data;
+  document.getElementById("generated-at").textContent = new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
+  DEMO_MODE = !!data.demo_mode;
+
+  // site switcher
+  const siteSelect = document.getElementById("site-switcher");
+  const siteList = data.site_list || ["betwinner.com"];
+  siteSelect.innerHTML = siteList.map(s => `<option value="${s}">${s}${s === "betwinner.com" ? " (полный отчёт)" : ""}</option>`).join("");
+  siteSelect.value = "betwinner.com";
+  siteSelect.addEventListener("change", () => renderAll(document.getElementById("period-switcher").value, siteSelect.value));
+
+  // period switcher
+  const periodSelect = document.getElementById("period-switcher");
+  periodSelect.addEventListener("change", () => renderAll(periodSelect.value, siteSelect.value));
+
+  renderAll("all", "betwinner.com");
 }
 
 /* ===================== tabs ===================== */

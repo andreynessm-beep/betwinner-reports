@@ -145,6 +145,17 @@
     background: color-mix(in srgb, var(--series-4) 12%, transparent); border: 1px solid color-mix(in srgb, var(--series-4) 35%, transparent);
     border-radius: 12px; font-size: 13px; color: var(--text-secondary);
   }
+  .period-picker { margin-bottom: 22px; }
+  .period-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .period-pill {
+    padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+    background: var(--surface-1); border: 1.5px solid var(--border); color: var(--text-secondary);
+    cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s;
+  }
+  .period-pill:hover { border-color: var(--brand-a); color: var(--text-primary); }
+  .period-pill.active { background: var(--brand-a); border-color: var(--brand-a); color: #fff; }
+  .period-pill:disabled { opacity: .35; cursor: not-allowed; }
+  .period-pill:disabled:hover { border-color: var(--border); color: var(--text-secondary); }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 24px; position: relative; }
   .tab-btn {
@@ -459,15 +470,14 @@
     </div>
     <div class="header-controls">
       <select id="site-switcher" class="top-select"></select>
-      <select id="period-switcher" class="top-select" title="Сайту 5 дней (с 17.08) — пока история короче недели, все варианты периода показывают одни и те же цифры. Разница появится по мере накопления данных."
-        <option value="all">Весь период</option>
-        <option value="week">Неделя</option>
-        <option value="month">Месяц</option>
-        <option value="quarter">Квартал</option>
-      </select>
       <div class="period-badge"><span class="dot"></span><span id="period-label">с 17.08.2026</span></div>
     </div>
   </header>
+
+  <div class="period-picker" id="period-picker">
+    <div class="period-row" id="period-row-months"></div>
+    <div class="period-row" id="period-row-weeks" style="display:none;"></div>
+  </div>
 
   <div class="tabs" id="device-tabs">
     <button class="tab-btn active" data-tab="combined">Общее</button>
@@ -1302,6 +1312,111 @@ function computeFilteredTrend(sessionRows) {
   return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
 }
 
+/* ===================== calendar period picker (неделя/месяц/квартал) ===================== */
+const MONTH_NAMES = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+function addDaysISO(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function mondayOfISO(dateStr) {
+  const d = new Date(dateStr + "T00:00:00Z");
+  const day = (d.getUTCDay() + 6) % 7; // 0=Mon..6=Sun
+  return addDaysISO(dateStr, -day);
+}
+function fmtDM(dateStr) {
+  const [, m, d] = dateStr.split("-");
+  return `${d}.${m}`;
+}
+function monthKey(dateStr) { return dateStr.slice(0, 7); } // "YYYY-MM"
+function quarterOf(dateStr) {
+  const [y, m] = dateStr.slice(0, 7).split("-").map(Number);
+  return { year: y, q: Math.ceil(m / 3) };
+}
+function lastDayOfMonth(year, month) { // month: 1-12
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+// Monday-aligned week chunks clipped to the month's own boundaries (so the
+// first/last chunk can be shorter than 7 days, matching how a real calendar
+// week overlaps a month edge).
+function weeksInMonth(year, month) {
+  const mm = String(month).padStart(2, "0");
+  const monthStart = `${year}-${mm}-01`;
+  const monthEnd = `${year}-${mm}-${String(lastDayOfMonth(year, month)).padStart(2, "0")}`;
+  const weeks = [];
+  let cur = mondayOfISO(monthStart);
+  while (cur <= monthEnd) {
+    const weekEnd = addDaysISO(cur, 6);
+    weeks.push({ start: cur < monthStart ? monthStart : cur, end: weekEnd > monthEnd ? monthEnd : weekEnd });
+    cur = addDaysISO(cur, 7);
+  }
+  return weeks;
+}
+function monthsInQuarter(year, q) {
+  const first = (q - 1) * 3 + 1;
+  return [first, first + 1, first + 2];
+}
+
+// mode: "all" | "quarter" | "month" | "week" -- separate from quarter/month/
+// week, which just remember the last-chosen context so switching modes
+// doesn't lose your place. Keeping "all" as its own mode (rather than
+// quarter===null) avoids the picker silently re-selecting the current
+// quarter the next time it rebuilds and it re-populates quarter from data.
+let PERIOD_STATE = { mode: "all", quarter: null, month: null, week: null };
+
+function periodDateRange() {
+  if (PERIOD_STATE.mode === "all" || !PERIOD_STATE.quarter) return null;
+  if (PERIOD_STATE.mode === "week" && PERIOD_STATE.week) return PERIOD_STATE.week;
+  if (PERIOD_STATE.mode === "month" && PERIOD_STATE.month) {
+    const mm = String(PERIOD_STATE.month).padStart(2, "0");
+    const y = PERIOD_STATE.quarter.year;
+    return { start: `${y}-${mm}-01`, end: `${y}-${mm}-${String(lastDayOfMonth(y, PERIOD_STATE.month)).padStart(2,"0")}` };
+  }
+  const [m1, , m3] = monthsInQuarter(PERIOD_STATE.quarter.year, PERIOD_STATE.quarter.q);
+  const y = PERIOD_STATE.quarter.year;
+  return { start: `${y}-${String(m1).padStart(2,"0")}-01`, end: `${y}-${String(m3).padStart(2,"0")}-${String(lastDayOfMonth(y, m3)).padStart(2,"0")}` };
+}
+
+function buildPeriodPicker(availableDates) {
+  const monthsRow = document.getElementById("period-row-months");
+  const weeksRow = document.getElementById("period-row-weeks");
+  if (!availableDates.length) { monthsRow.innerHTML = ""; weeksRow.style.display = "none"; return; }
+  const maxDate = availableDates[availableDates.length - 1];
+  if (!PERIOD_STATE.quarter) PERIOD_STATE.quarter = quarterOf(maxDate);
+
+  const monthsWithData = monthsInQuarter(PERIOD_STATE.quarter.year, PERIOD_STATE.quarter.q)
+    .filter(m => {
+      const mm = String(m).padStart(2, "0");
+      return availableDates.some(d => d.startsWith(`${PERIOD_STATE.quarter.year}-${mm}`));
+    });
+
+  monthsRow.innerHTML = "";
+  const pill = (label, active, onClick, disabled) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "period-pill" + (active ? " active" : "");
+    b.textContent = label; b.disabled = !!disabled;
+    if (!disabled) b.addEventListener("click", onClick);
+    return b;
+  };
+  monthsRow.appendChild(pill("Весь период", PERIOD_STATE.mode === "all", () => { PERIOD_STATE.mode = "all"; onPeriodChange(); }));
+  monthsRow.appendChild(pill(`Q${PERIOD_STATE.quarter.q} ${PERIOD_STATE.quarter.year} целиком`, PERIOD_STATE.mode === "quarter", () => { PERIOD_STATE.mode = "quarter"; onPeriodChange(); }));
+  monthsWithData.forEach(m => {
+    monthsRow.appendChild(pill(MONTH_NAMES[m - 1], PERIOD_STATE.mode === "month" && PERIOD_STATE.month === m, () => { PERIOD_STATE.mode = "month"; PERIOD_STATE.month = m; onPeriodChange(); }));
+  });
+
+  if (PERIOD_STATE.mode === "month" || PERIOD_STATE.mode === "week") {
+    weeksRow.style.display = "";
+    weeksRow.innerHTML = "";
+    weeksRow.appendChild(pill("Весь месяц", PERIOD_STATE.mode === "month", () => { PERIOD_STATE.mode = "month"; onPeriodChange(); }));
+    weeksInMonth(PERIOD_STATE.quarter.year, PERIOD_STATE.month).forEach(w => {
+      const hasData = availableDates.some(d => d >= w.start && d <= w.end);
+      const active = PERIOD_STATE.mode === "week" && PERIOD_STATE.week && PERIOD_STATE.week.start === w.start && PERIOD_STATE.week.end === w.end;
+      weeksRow.appendChild(pill(`${fmtDM(w.start)}–${fmtDM(w.end)}`, active, () => { PERIOD_STATE.mode = "week"; PERIOD_STATE.week = w; onPeriodChange(); }, !hasData));
+    });
+  } else {
+    weeksRow.style.display = "none";
+  }
+}
+
 const OS_LABELS = { "Windows": "Windows", "Macintosh": "macOS", "iOS": "iOS", "Android": "Android", "Linux": "Linux", "Chrome OS": "Chrome OS", "Tizen": "Tizen" };
 function osLabel(name) { return OS_LABELS[name] || name; }
 
@@ -1835,31 +1950,39 @@ function renderSiteLite(containerId, s, domain) {
 /* ===================== init ===================== */
 let DEMO_MODE = false;
 let REPORT_DATA = null;
-let CURRENT_PERIOD = "all";
+let CURRENT_SITE = "betwinner.com";
 
-function applyPeriod(p, period) {
-  // Only totals/trend get swapped by the period switcher -- the funnel and
-  // event breakdowns stay cumulative-since-launch (too young a launch date
-  // for those to be meaningfully sliced by a short recent window yet, and
-  // period-specific funnel data isn't fetched to keep the report light).
-  if (period === "all" || !p.periods || !p.periods[period]) return p;
-  return { ...p, totals: p.periods[period].totals, trend: p.periods[period].trend };
+function applyPeriod(p) {
+  // Only totals/trend get swapped by the period picker -- the funnel and
+  // event breakdowns stay cumulative-since-launch (slicing those by a
+  // short window isn't fetched, to keep the report light -- the picker's
+  // job is trend/KPI drill-down, not a second full funnel per period).
+  const range = periodDateRange();
+  if (!range) return p; // "Весь период"
+  const rows = (p.filter_session_rows || []).filter(r => r.date >= range.start && r.date <= range.end);
+  if (!rows.length) {
+    return { ...p, totals: { sessions: 0, totalUsers: 0, screenPageViews: 0, averageSessionDuration: 0, bounceRate: 0, engagementRate: 0 }, trend: [] };
+  }
+  return { ...p, totals: computeFilteredTotals(rows), trend: computeFilteredTrend(rows) };
 }
 
-function renderAll(period, site) {
+function onPeriodChange() { renderAll(CURRENT_SITE); }
+
+function renderAll(site) {
   const data = REPORT_DATA;
-  CURRENT_PERIOD = period;
+  CURRENT_SITE = site;
   const isMain = site === "betwinner.com";
   document.getElementById("device-tabs").style.display = isMain ? "" : "none";
   document.getElementById("panel-combined").style.display = isMain ? "" : "none";
   document.getElementById("panel-desktop").style.display = "none";
   document.getElementById("panel-mobile").style.display = "none";
   document.getElementById("panel-site-lite").style.display = isMain ? "none" : "";
-  document.getElementById("period-switcher").style.display = isMain ? "" : "none";
+  document.getElementById("period-picker").style.display = isMain ? "" : "none";
 
   if (isMain) {
-    const desktop = applyPeriod(data.properties.desktop, period);
-    const mobile = applyPeriod(data.properties.mobile, period);
+    buildPeriodPicker((data.properties.desktop.trend || []).map(t => t.date).sort());
+    const desktop = applyPeriod(data.properties.desktop);
+    const mobile = applyPeriod(data.properties.mobile);
     const combined = combineProps(desktop, mobile);
     renderTab("panel-combined", combined, "ПК + Моб суммарно.");
     renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
@@ -1894,13 +2017,9 @@ async function initReport() {
   const siteList = data.site_list || ["betwinner.com"];
   siteSelect.innerHTML = siteList.map(s => `<option value="${s}">${s}${s === "betwinner.com" ? " (полный отчёт)" : ""}</option>`).join("");
   siteSelect.value = "betwinner.com";
-  siteSelect.addEventListener("change", () => renderAll(document.getElementById("period-switcher").value, siteSelect.value));
+  siteSelect.addEventListener("change", () => renderAll(siteSelect.value));
 
-  // period switcher
-  const periodSelect = document.getElementById("period-switcher");
-  periodSelect.addEventListener("change", () => renderAll(periodSelect.value, siteSelect.value));
-
-  renderAll("all", "betwinner.com");
+  renderAll("betwinner.com");
 }
 
 /* ===================== tabs ===================== */

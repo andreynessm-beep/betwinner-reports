@@ -1070,15 +1070,28 @@ function niceAxisStep(max, targetTicks) {
 function buildTrendChart(points, key, label, colorVar) {
   colorVar = colorVar || "--brand-a";
   const wrap = document.createElement("div"); wrap.className = "trend-wrap";
-  if (points.length < 2) {
+  if (points.length === 1) {
+    // A line needs 2+ points to connect -- but a single point isn't
+    // "missing data" when it's because the user deliberately picked one
+    // specific day in the calendar (other days DO exist, just filtered
+    // out). Show that one real number as a hero stat instead of an
+    // apologetic "не хватает данных" message that doesn't fit that case.
+    const hero = document.createElement("div");
+    hero.style.cssText = "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:36px 0;";
+    const val = document.createElement("div");
+    val.style.cssText = `font-size:42px;font-weight:700;line-height:1;color:${cssVar(colorVar)};`;
+    val.textContent = fmtInt(points[0][key]);
+    const sub = document.createElement("div");
+    sub.style.cssText = "font-size:13px;color:var(--text-secondary);";
+    sub.textContent = `${label} · ${fmtDate(points[0].date)}`;
+    hero.append(val, sub);
+    wrap.appendChild(hero);
+    return wrap;
+  }
+  if (points.length === 0) {
     const note = document.createElement("div"); note.className = "note-banner small";
-    note.innerHTML = `<b>Пока только ${points.length === 1 ? "один день" : "нет"} данных.</b> График появится, когда накопится несколько дней статистики.`;
+    note.innerHTML = `<b>Нет данных за выбранный период.</b> Попробуйте выбрать другой диапазон дат.`;
     wrap.appendChild(note);
-    if (points.length === 1) {
-      const row = document.createElement("div"); row.style.fontSize = "13px"; row.style.color = "var(--text-secondary)";
-      row.textContent = `${fmtDate(points[0].date)}: ${fmtInt(points[0][key])} (${label.toLowerCase()})`;
-      wrap.appendChild(row);
-    }
     return wrap;
   }
   const W = 640, H = 190, padL = 46, padR = 20, padT = 24, padB = 24;
@@ -1234,6 +1247,11 @@ function buildTable(headers, rows, alignRightFrom) {
 
 // Channels + sources merged into ONE grouped table — full text, no truncation
 function buildSourceGroupTable(channels, sources) {
+  if (!channels || !channels.length) {
+    const note = document.createElement("div"); note.className = "note-banner small";
+    note.innerHTML = `<b>Нет данных об источниках за выбранный период.</b> Разбивка по источникам собирается только с 17.08.2026 (запуск новой аналитики) — попробуйте выбрать более поздний период.`;
+    return note;
+  }
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead");
   thead.innerHTML = `<tr><th>Канал / источник</th><th style="text-align:right">Сессии</th><th style="text-align:right">Пользователи</th><th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»), а не просто клик по кнопке.">Успешных регистраций ⓘ</th><th style="text-align:right">Конверсия</th><th style="text-align:right">Отказы</th><th style="text-align:right">Энгейджмент</th></tr>`;
@@ -1657,6 +1675,57 @@ function computeOsBreakdown(sessionRows) {
   (sessionRows || []).forEach(r => map.set(r.os, (map.get(r.os) || 0) + r.sessions));
   return Array.from(map.entries()).map(([name, sessions]) => ({ name: osLabel(name), sessions })).sort((a,b) => b.sessions - a.sessions);
 }
+function filterSourceRows(rows, f) {
+  return (rows || []).filter(r => inPeriodRange(r.date) && (f.channel === "all" || r.channel === f.channel));
+}
+function filterLandingRows(rows) {
+  // landing rows carry no country/channel/os dims -- period is the only
+  // filter that applies to this table (disclosed in its section hint).
+  return (rows || []).filter(r => inPeriodRange(r.date));
+}
+function computeSourceBreakdown(sourceRows) {
+  const map = new Map();
+  (sourceRows || []).forEach(r => {
+    const key = r.channel + "||" + r.source;
+    if (!map.has(key)) map.set(key, { channel: r.channel, name: r.source, sessions: 0, totalUsers: 0, signUps: 0, _bounceSessions: 0, _engagedSessions: 0 });
+    const acc = map.get(key);
+    acc.sessions += r.sessions; acc.totalUsers += r.totalUsers;
+    acc._bounceSessions += r.bounceSessions || 0; acc._engagedSessions += r.engagedSessions || 0;
+    acc.signUps += r.signUps || 0;
+  });
+  return Array.from(map.values()).map(acc => ({
+    channel: acc.channel, name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, signUps: acc.signUps,
+    bounceRate: acc.sessions ? acc._bounceSessions / acc.sessions * 100 : 0,
+    engagementRate: acc.sessions ? acc._engagedSessions / acc.sessions * 100 : 0,
+  })).sort((a,b) => b.sessions - a.sessions);
+}
+function computeChannelBreakdown(sourcesArr) {
+  const map = new Map();
+  (sourcesArr || []).forEach(s => {
+    if (!map.has(s.channel)) map.set(s.channel, { name: s.channel, sessions: 0, totalUsers: 0 });
+    const acc = map.get(s.channel);
+    acc.sessions += s.sessions; acc.totalUsers += s.totalUsers;
+  });
+  return Array.from(map.values()).sort((a,b) => b.sessions - a.sessions);
+}
+function computeLandingBreakdown(landingRows) {
+  const map = new Map();
+  (landingRows || []).forEach(r => {
+    if (!map.has(r.name)) map.set(r.name, { name: r.name, sessions: 0, totalUsers: 0, screenPageViews: 0, regStarts: 0, signUps: 0, _bounceSessions: 0, _engagedSessions: 0, _durSum: 0 });
+    const acc = map.get(r.name);
+    acc.sessions += r.sessions; acc.totalUsers += r.totalUsers; acc.screenPageViews += r.screenPageViews;
+    acc._bounceSessions += r.bounceSessions || 0; acc._engagedSessions += r.engagedSessions || 0;
+    acc._durSum += r.engagementDurationSec || 0;
+    acc.regStarts += r.regStarts || 0; acc.signUps += r.signUps || 0;
+  });
+  return Array.from(map.values()).map(acc => ({
+    name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, screenPageViews: acc.screenPageViews,
+    regStarts: acc.regStarts, signUps: acc.signUps,
+    bounceRate: acc.sessions ? acc._bounceSessions / acc.sessions * 100 : 0,
+    engagementRate: acc.sessions ? acc._engagedSessions / acc.sessions * 100 : 0,
+    avgSessionSec: acc.sessions ? acc._durSum / acc.sessions : 0,
+  })).sort((a,b) => b.sessions - a.sessions);
+}
 function computeNvrFromRows(sessionRows, eventRows) {
   const mk = () => ({ sessions: 0, totalUsers: 0, bounceSessions: 0, engagedSessions: 0, durSum: 0, regStarts: 0, signUps: 0 });
   const acc = { new: mk(), returning: mk(), unclassified: mk() };
@@ -1868,29 +1937,30 @@ function buildFilterBar(sessionRows, onChange) {
 function renderTab(containerId, p, deviceLabel) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, signup_success_by_source: successBySource, event_details: eventDetails, filter_session_rows: sessionRows, filter_event_rows: eventRows } = p;
+  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, signup_success_by_source: successBySource, event_details: eventDetails, filter_session_rows: sessionRows, filter_event_rows: eventRows, filter_source_rows: sourceRows, filter_landing_rows: landingRows } = p;
   const hasFlat = sessionRows && sessionRows.length && eventRows;
 
   const kpiZone = document.createElement("div");
   const belowFilterZone = document.createElement("div");
   let funnelMode = "all"; // funnel-only toggle: "all" visitors vs "new" visitors
 
-  // Persistent content containers for the sections below that CAN react to
-  // the period/filter selection from data already in filter_session_rows/
-  // filter_event_rows (country, os, new-vs-returning, event counts all
-  // carry those dimensions). Created once, repopulated by renderDynamic on
-  // every call -- by the time they're appended into the page further down,
-  // the initial renderDynamic(initialFilters) call below has already filled
-  // them once. Источники (per-source, not just per-channel) and Топ
-  // посадочных страниц stay static/full-period -- landingPage and the fine
-  // sessionSourceMedium dimension were never captured in the flat tables,
-  // so those two specifically can't be rebuilt client-side without a much
-  // bigger backend change (adding 2 more high-cardinality dimensions to
-  // every row would multiply the already-large data.json size).
+  // Persistent content containers for the sections that react to the
+  // period/filter selection, sourced from the flat tables (country/os/nvr/
+  // event counts from filter_session_rows+filter_event_rows; channel+source
+  // from filter_source_rows; landing page from filter_landing_rows -- two
+  // separate lean tables, not piled onto the 5-dim session table, to avoid
+  // a combinatorial blowup in row count/file size). Created once,
+  // repopulated by renderDynamic on every call -- by the time they're
+  // appended into the page further down, the initial
+  // renderDynamic(initialFilters) call below has already filled them once.
+  // Браузеры stays static/full-period -- that one dimension genuinely isn't
+  // captured anywhere in the flat tables.
   const geoCard = document.createElement("div"); geoCard.className = "card";
   const osCard = document.createElement("div");
   const evCard = document.createElement("div"); evCard.className = "card";
   const nvrCard = document.createElement("div"); nvrCard.className = "card";
+  const srcCard = document.createElement("div"); srcCard.className = "card";
+  const lpCard = document.createElement("div"); lpCard.className = "card";
 
   function renderDynamic(filters) {
     const fSessionRows = hasFlat ? filterSessionRows(sessionRows, filters) : null;
@@ -2032,8 +2102,10 @@ function renderTab(containerId, p, deviceLabel) {
     }
 
     // Reactive sections below (feasible from the flat rows -- country/os/
-    // new-vs-returning/event counts all carry those dimensions per row;
-    // Источники/Топ посадочных страниц/Браузеры can't be, see notes above).
+    // new-vs-returning/event counts/channel+source/landingPage all carry
+    // date, so period filtering applies cleanly; source/landing rows don't
+    // carry country/os, so only period + (for sources) the channel filter
+    // apply to those two -- disclosed in their section hints).
     if (hasFlat) {
       geoCard.innerHTML = "";
       geoCard.appendChild(buildCountryTable(computeCountryBreakdown(fSessionRows, fEventRowsAll)));
@@ -2041,11 +2113,19 @@ function renderTab(containerId, p, deviceLabel) {
       osCard.appendChild(donutBlock("Операционные системы", computeOsBreakdown(fSessionRows), "sessions"));
       buildEventsTableCard(evCard, fEventsAll, fTotals.totalUsers);
       buildNvrCardContent(nvrCard, computeNvrFromRows(fSessionRows, fEventRowsAll), fSessionRows);
+      const fSourceRows = filterSourceRows(sourceRows, filters);
+      const fSourcesArr = computeSourceBreakdown(fSourceRows);
+      srcCard.innerHTML = "";
+      srcCard.appendChild(buildSourceGroupTable(computeChannelBreakdown(fSourcesArr), fSourcesArr));
+      const fLandingRows = filterLandingRows(landingRows);
+      buildLandingPagesCard(lpCard, computeLandingBreakdown(fLandingRows));
     } else {
       geoCard.innerHTML = ""; geoCard.appendChild(buildCountryTable(countries || []));
       osCard.innerHTML = ""; osCard.appendChild(donutBlock("Операционные системы", oses, "sessions"));
       buildEventsTableCard(evCard, events, totals.totalUsers);
       buildNvrCardContent(nvrCard, nvr, null);
+      srcCard.innerHTML = ""; srcCard.appendChild(buildSourceGroupTable(channels, sources));
+      buildLandingPagesCard(lpCard, landingPages);
     }
 
     // kpiZone/belowFilterZone are rebuilt from scratch on every filter change, so
@@ -2068,16 +2148,23 @@ function renderTab(containerId, p, deviceLabel) {
 
   el.appendChild(belowFilterZone);
 
-  const srcBody = collapsibleSection(el, "Источники трафика", "по каналу и конкретному источнику");
-  const srcCard = document.createElement("div"); srcCard.className = "card";
-  srcCard.appendChild(buildSourceGroupTable(channels, sources));
+  const srcBody = collapsibleSection(el, "Источники трафика", "по каналу и конкретному источнику — пересчитывается по выбранному периоду");
   srcBody.appendChild(srcCard);
 
   const geoBody = collapsibleSection(el, "География", "какие страны реально дают регистрации, а не только трафик — пересчитывается по выбранному периоду");
   geoBody.appendChild(geoCard);
 
-  const lpBody = collapsibleSection(el, "Топ посадочных страниц", "с какой страницы человек начал визит — трафик, вовлечённость и весь путь до регистрации по каждой странице отдельно");
-  const lpCard = document.createElement("div"); lpCard.className = "card";
+  const lpBody = collapsibleSection(el, "Топ посадочных страниц", "с какой страницы человек начал визит — трафик, вовлечённость и весь путь до регистрации по каждой странице отдельно — пересчитывается по выбранному периоду");
+  lpBody.appendChild(lpCard);
+
+  function buildLandingPagesCard(container, landingPagesArr) {
+  container.innerHTML = "";
+  if (!landingPagesArr || !landingPagesArr.length) {
+    const note = document.createElement("div"); note.className = "note-banner small";
+    note.innerHTML = `<b>Нет данных о посадочных страницах за выбранный период.</b> Эта разбивка собирается только с 17.08.2026 (запуск новой аналитики) — попробуйте выбрать более поздний период.`;
+    container.appendChild(note);
+    return;
+  }
   const lpTable = document.createElement("table"); lpTable.className = "data-table";
   const lpThead = document.createElement("thead");
   lpThead.innerHTML = `<tr>
@@ -2095,7 +2182,7 @@ function renderTab(containerId, p, deviceLabel) {
   </tr>`;
   lpTable.appendChild(lpThead);
   const lpTbody = document.createElement("tbody");
-  const lpSorted = (landingPages || []).slice().sort((a,b) => b.sessions - a.sessions).slice(0, 15);
+  const lpSorted = (landingPagesArr || []).slice().sort((a,b) => b.sessions - a.sessions).slice(0, 15);
   lpSorted.forEach(l => {
     const tr = document.createElement("tr");
     const perSession = l.sessions > 0 ? (l.screenPageViews / l.sessions).toFixed(1).replace(".", ",") : "—";
@@ -2132,8 +2219,8 @@ function renderTab(containerId, p, deviceLabel) {
     lpTbody.appendChild(tr);
   });
   lpTable.appendChild(lpTbody);
-  lpCard.appendChild(lpTable);
-  lpBody.appendChild(lpCard);
+  container.appendChild(lpTable);
+  }
 
   const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители", "кто реально доходит до регистрации — новички или те, кто уже был на сайте — пересчитывается по выбранному периоду");
   nvrBody.appendChild(nvrCard);
@@ -2405,6 +2492,8 @@ function combineProps(desktop, mobile) {
     event_details: mergeEventDetails(desktop.event_details, mobile.event_details),
     filter_session_rows: [...(desktop.filter_session_rows||[]), ...(mobile.filter_session_rows||[])],
     filter_event_rows: [...(desktop.filter_event_rows||[]), ...(mobile.filter_event_rows||[])],
+    filter_source_rows: [...(desktop.filter_source_rows||[]), ...(mobile.filter_source_rows||[])],
+    filter_landing_rows: [...(desktop.filter_landing_rows||[]), ...(mobile.filter_landing_rows||[])],
   };
 }
 

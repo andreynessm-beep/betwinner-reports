@@ -572,6 +572,30 @@ const GLOSSARY = {
   app_download_click:      { label: "Клик по скачиванию приложения", desc: "Клиент нажал на ссылку скачивания мобильного приложения (iOS или Android).", detailLabel: "Какая платформа" },
   social_footer_click:     { label: "Клик по соцсети в подвале",     desc: "Клик по иконке соцсети внизу сайта (VK / Instagram / Facebook / X / Telegram).", detailLabel: "Какая соцсеть" },
   chat_open:               { label: "Открытие чата поддержки",       desc: "Клиент нажал кнопку открытия окна чата поддержки." },
+  deposit_button_click:    { label: "Клик по кнопке «Пополнить»",    desc: "Клиент нажал кнопку пополнения счёта в шапке/меню сайта." },
+  coupon_sale_click:       { label: "Клик «Продать купон»",          desc: "Клиент нажал кнопку продажи купона ставок." },
+  bonus_activate_click:    { label: "Клик «Активировать бонус»",     desc: "Клиент нажал кнопку активации бонуса." },
+  // ---- native site events: the site pushes these into dataLayer itself
+  // (own tracking, independent of GA4) -- found digging through the JS
+  // bundles while chasing the sign_up_success under-count, confirmed both
+  // by real historical firing volume and current live code before wiring up
+  reg_submit_click:        { label: "Клик «Зарегистрироваться»",     desc: "Клиент нажал кнопку финальной отправки формы регистрации (шаг между «Начало заполнения формы» и «Успешная регистрация»)." },
+  reg_full_submit:         { label: "Отправка полной формы регистрации", desc: "Отправка регистрации через полную форму (email/имя/страна и т.д., в отличие от быстрой регистрации по телефону).", detailLabel: "Тип отправки" },
+  reg_otp_error:           { label: "Ошибка SMS-кода при регистрации", desc: "Клиент ввёл неверный код подтверждения по SMS во время регистрации по телефону." },
+  reg_abandon:             { label: "Уход из регистрации",           desc: "Клиент открыл попап подтверждения выхода из формы регистрации (собирается уйти, не закончив)." },
+  login_start:             { label: "Попытка входа",                 desc: "Клиент нажал «Войти» и отправил форму входа в аккаунт (нативное событие сайта)." },
+  login_success:           { label: "Успешный вход",                 desc: "Клиент успешно вошёл в существующий аккаунт." },
+  login_error:             { label: "Ошибка входа",                  desc: "Попытка входа в аккаунт закончилась ошибкой (неверный пароль и т.п.)." },
+  password_reset_start:    { label: "Начало восстановления пароля",  desc: "Клиент начал процесс восстановления пароля." },
+  password_reset_code_sent:{ label: "Код восстановления отправлен",  desc: "Клиенту отправлен код для восстановления пароля (SMS/email)." },
+  password_reset_submit:   { label: "Отправка нового пароля",        desc: "Клиент отправил форму с новым паролем." },
+  password_reset_error:    { label: "Ошибка восстановления пароля",  desc: "Процесс восстановления пароля закончился ошибкой." },
+  deposit_click:           { label: "Клик по пополнению (нативно)",  desc: "Клиент нажал кнопку пополнения счёта — нативное событие сайта, знает откуда именно нажали.", detailLabel: "Где именно" },
+  deposit_abandon:         { label: "Уход из пополнения",            desc: "Клиент открыл попап подтверждения выхода из формы пополнения счёта (не завершив)." },
+  withdraw_click:          { label: "Клик по выводу средств",        desc: "Клиент нажал кнопку вывода средств.", detailLabel: "Где именно" },
+  bet_placed:               { label: "Ставка сделана",                 desc: "Клиент разместил ставку — реальное вовлечение в продукт, не просто визит.", detailLabel: "Экран" },
+  bet_error:                { label: "Ошибка при ставке",              desc: "Попытка сделать ставку закончилась ошибкой." },
+  promo_panel_open:        { label: "Открытие панели промокода",     desc: "Клиент открыл панель ввода промокода." },
 };
 const KNOWN_EVENT_ORDER = Object.keys(GLOSSARY);
 const BUSINESS_EVENTS = KNOWN_EVENT_ORDER.filter(n => !GLOSSARY[n].system);
@@ -1294,6 +1318,163 @@ function buildDualTrendChart(seriesA, seriesB) {
   return wrap;
 }
 
+// "Classic BI tool" style chart: real Y-axis with gridlines, both series on
+// ONE shared scale, area fill under the primary series only, a thin plain
+// line for the secondary one. This ONLY works when the two series are
+// actually comparable in magnitude (e.g. page views vs sessions, both in
+// the same order of magnitude) -- unlike buildDualTrendChart's banded
+// layout, a shared axis here would flatten a much-smaller series (like
+// registrations against sessions) to an invisible flat line at the bottom.
+function niceAxisStep(max, targetTicks) {
+  if (max <= 0) return 1;
+  const raw = max / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  return step * mag;
+}
+function fmtAxisNum(n) {
+  if (Math.abs(n) >= 1000) return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1).replace(".", ",") + "K";
+  return String(n);
+}
+function buildAxisTrendChart(seriesA, seriesB) {
+  const wrap = document.createElement("div"); wrap.className = "trend-wrap";
+  const allDates = Array.from(new Set([...(seriesA.points||[]).map(p=>p.date), ...(seriesB.points||[]).map(p=>p.date)])).sort();
+  if (allDates.length < 2) {
+    const note = document.createElement("div"); note.className = "note-banner small";
+    note.innerHTML = `<b>Пока недостаточно данных.</b> График появится, когда накопится несколько дней статистики.`;
+    wrap.appendChild(note);
+    return wrap;
+  }
+  const W = 640, H = 240, padL = 46, padR = 16, padT = 16, padB = 24;
+  const dateIndex = new Map(allDates.map((d,i) => [d,i]));
+  const xStep = (W - padL - padR) / (allDates.length - 1);
+  const xFor = i => padL + i * xStep;
+
+  const maxVal = Math.max(
+    ...(seriesA.points||[]).map(p => p[seriesA.key]),
+    ...(seriesB.points||[]).map(p => p[seriesB.key]),
+    1
+  );
+  const step = niceAxisStep(maxVal, 4);
+  const axisMax = Math.ceil(maxVal / step) * step;
+  const yFor = v => padT + (H - padT - padB) * (1 - v / axisMax);
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.classList.add("trend-svg");
+
+  // gridlines + axis labels
+  for (let v = 0; v <= axisMax + 0.001; v += step) {
+    const y = yFor(v);
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", padL); line.setAttribute("x2", W - padR);
+    line.setAttribute("y1", y); line.setAttribute("y2", y);
+    line.setAttribute("stroke", cssVar("--grid")); line.setAttribute("stroke-width", "1");
+    svg.appendChild(line);
+    const t = document.createElementNS(svgNS, "text");
+    t.setAttribute("x", padL - 8); t.setAttribute("y", y + 3); t.setAttribute("text-anchor", "end");
+    t.setAttribute("class", "trend-axis-label");
+    t.textContent = fmtAxisNum(Math.round(v));
+    svg.appendChild(t);
+  }
+
+  const smoothPath = pts => {
+    if (pts.length < 3) return "M " + pts.map(c => c.join(",")).join(" L ");
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+
+  function drawSeries(series, withFill, withDots) {
+    const pts = (series.points || []).filter(p => dateIndex.has(p.date));
+    if (pts.length < 2) return;
+    const coords = pts.map(p => [xFor(dateIndex.get(p.date)), yFor(p[series.key])]);
+    const color = cssVar(series.colorVar);
+    const smoothD = smoothPath(coords);
+
+    if (withFill) {
+      const gradId = "axisArea" + Math.random().toString(36).slice(2, 7);
+      const defs = document.createElementNS(svgNS, "defs");
+      const grad = document.createElementNS(svgNS, "linearGradient");
+      grad.setAttribute("id", gradId); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0"); grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
+      const gs1 = document.createElementNS(svgNS, "stop"); gs1.setAttribute("offset", "0%"); gs1.setAttribute("stop-color", color); gs1.setAttribute("stop-opacity", "0.28");
+      const gs2 = document.createElementNS(svgNS, "stop"); gs2.setAttribute("offset", "100%"); gs2.setAttribute("stop-color", color); gs2.setAttribute("stop-opacity", "0");
+      grad.append(gs1, gs2); defs.appendChild(grad); svg.appendChild(defs);
+      const baseline = yFor(0);
+      const area = document.createElementNS(svgNS, "path");
+      area.setAttribute("d", `${smoothD} L ${coords[coords.length-1][0]},${baseline} L ${coords[0][0]},${baseline} Z`);
+      area.setAttribute("fill", `url(#${gradId})`);
+      svg.appendChild(area);
+    }
+
+    const line = document.createElementNS(svgNS, "path");
+    line.setAttribute("d", smoothD);
+    line.setAttribute("fill", "none");
+    line.setAttribute("stroke", color);
+    line.setAttribute("stroke-width", withFill ? "3" : "2");
+    line.setAttribute("stroke-linejoin", "round");
+    line.setAttribute("stroke-linecap", "round");
+    svg.appendChild(line);
+
+    if (withDots) {
+      pts.forEach((p, i) => {
+        const [cx, cy] = coords[i];
+        const dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", "4");
+        dot.setAttribute("fill", color);
+        dot.setAttribute("stroke", cssVar("--surface-1")); dot.setAttribute("stroke-width", "1.5");
+        svg.appendChild(dot);
+      });
+    }
+
+    pts.forEach((p, i) => {
+      const [cx, cy] = coords[i];
+      const hit = document.createElementNS(svgNS, "circle");
+      hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", "12");
+      hit.setAttribute("fill", "transparent"); hit.style.cursor = "default";
+      hit.addEventListener("pointermove", ev => showTip(ev.clientX, ev.clientY, fmtDate(p.date), `${series.label}: ${fmtInt(p[series.key])}`));
+      hit.addEventListener("pointerleave", hideTip);
+      svg.appendChild(hit);
+    });
+  }
+
+  drawSeries(seriesA, true, true);
+  drawSeries(seriesB, false, false);
+
+  const labelEvery = Math.ceil(allDates.length / 8);
+  allDates.forEach((d, i) => {
+    if (i % labelEvery === 0 || i === allDates.length - 1) {
+      const t = document.createElementNS(svgNS, "text");
+      t.setAttribute("x", xFor(i)); t.setAttribute("y", H - 6); t.setAttribute("text-anchor", "middle");
+      t.setAttribute("class", "trend-axis-label");
+      t.textContent = fmtDate(d);
+      svg.appendChild(t);
+    }
+  });
+
+  const legend = document.createElement("div");
+  legend.style.cssText = "display:flex;gap:18px;margin-bottom:8px;font-size:12px;color:var(--text-secondary);";
+  [[seriesA, true], [seriesB, false]].forEach(([s, filled]) => {
+    const item = document.createElement("span");
+    item.style.cssText = "display:inline-flex;align-items:center;gap:6px;";
+    const swatch = document.createElement("span");
+    swatch.style.cssText = `width:14px;height:${filled ? 3 : 2}px;background:${cssVar(s.colorVar)};display:inline-block;border-radius:1px;`;
+    item.append(swatch, document.createTextNode(s.label));
+    legend.appendChild(item);
+  });
+  wrap.appendChild(legend);
+  wrap.appendChild(svg);
+
+  return wrap;
+}
+
 function buildTable(headers, rows, alignRightFrom) {
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead"); const trh = document.createElement("tr");
@@ -1773,7 +1954,7 @@ function buildFilterBar(sessionRows, onChange) {
 function renderTab(containerId, p, deviceLabel) {
   const el = document.getElementById(containerId);
   el.innerHTML = "";
-  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, event_details: eventDetails, filter_session_rows: sessionRows, filter_event_rows: eventRows } = p;
+  const { totals, events, avg_load_time_ms: avgLoadTimeMs, trend, channels, sources, countries, browsers, operating_systems: oses, landing_pages: landingPages, new_vs_returning: nvr, signup_success_by_source: successBySource, event_details: eventDetails, filter_session_rows: sessionRows, filter_event_rows: eventRows } = p;
   const hasFlat = sessionRows && sessionRows.length && eventRows;
 
   const kpiZone = document.createElement("div");
@@ -1862,6 +2043,33 @@ function renderTab(containerId, p, deviceLabel) {
       const card = document.createElement("div"); card.className = "card funnel-card";
       card.appendChild(buildVisualFunnel(funnelSteps));
       wrap.appendChild(card);
+
+      // "Успешная регистрация" now fires from 3 independent triggers (CSS
+      // element visibility, URL change, and the site's own native reg_done
+      // event) -- tagged with success_source so each can be checked in
+      // isolation instead of trusting the combined total blindly.
+      if (successBySource && successBySource.length) {
+        const srcCard = document.createElement("div"); srcCard.className = "card"; srcCard.style.marginTop = "10px";
+        const srcTitle = document.createElement("div");
+        srcTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin-bottom:8px;font-weight:600;";
+        srcTitle.textContent = "Проверка: чем именно зафиксирована «Успешная регистрация»";
+        srcCard.appendChild(srcTitle);
+        const totalSrc = successBySource.reduce((s,r) => s + r.count, 0) || 1;
+        successBySource.forEach(r => {
+          const row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:10px;margin:6px 0;";
+          const label = document.createElement("div"); label.style.cssText = "flex:0 0 260px;font-size:13px;color:var(--text-secondary);";
+          label.textContent = r.source;
+          const barOuter = document.createElement("div"); barOuter.style.cssText = "flex:1;background:var(--grid);border-radius:4px;height:10px;overflow:hidden;";
+          const barInner = document.createElement("div"); barInner.style.cssText = `width:${r.count/totalSrc*100}%;height:100%;background:${cssVar("--series-1")};`;
+          barOuter.appendChild(barInner);
+          const val = document.createElement("div"); val.style.cssText = "flex:0 0 90px;text-align:right;font-size:13px;font-weight:600;";
+          val.textContent = `${fmtInt(r.count)} (${Math.round(r.count/totalSrc*100)}%)`;
+          row.append(label, barOuter, val);
+          srcCard.appendChild(row);
+        });
+        wrap.appendChild(srcCard);
+      }
+
       belowFilterZone.appendChild(wrap);
     }
 
@@ -2221,6 +2429,13 @@ function mergeCountries(a, b) {
   })).sort((x,y) => y.sessions - x.sessions);
 }
 function round2(n) { return Math.round(n * 100) / 100; }
+function mergeBySource(a, b) {
+  const map = new Map();
+  [...(a||[]), ...(b||[])].forEach(row => {
+    map.set(row.source, (map.get(row.source)||0) + row.count);
+  });
+  return Array.from(map.entries()).map(([source, count]) => ({source, count})).sort((x,y) => y.count - x.count);
+}
 function mergeNvr(d, m) {
   const out = { new: (d?.new||0) + (m?.new||0), returning: (d?.returning||0) + (m?.returning||0), unclassified: (d?.unclassified||0) + (m?.unclassified||0), detail: {} };
   ["new", "returning", "unclassified"].forEach(key => {
@@ -2337,6 +2552,7 @@ function combineProps(desktop, mobile) {
     operating_systems: mergeBreakdown(desktop.operating_systems, mobile.operating_systems, ["sessions"]),
     landing_pages: mergeLandingPages(desktop.landing_pages, mobile.landing_pages),
     new_vs_returning: mergeNvr(desktop.new_vs_returning, mobile.new_vs_returning),
+    signup_success_by_source: mergeBySource(desktop.signup_success_by_source, mobile.signup_success_by_source),
     event_details: mergeEventDetails(desktop.event_details, mobile.event_details),
     filter_session_rows: [...(desktop.filter_session_rows||[]), ...(mobile.filter_session_rows||[])],
     filter_event_rows: [...(desktop.filter_event_rows||[]), ...(mobile.filter_event_rows||[])],

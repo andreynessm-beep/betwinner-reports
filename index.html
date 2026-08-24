@@ -363,6 +363,7 @@
   table.data-table th, table.events-table th {
     text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .02em;
     color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--grid);
+    white-space: nowrap;
   }
   table.data-table td, table.events-table td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; transition: background .12s; }
   table.data-table tr:last-child td, table.events-table tr:last-child td { border-bottom: none; }
@@ -1143,6 +1144,125 @@ function buildTrendChart(points, key, label) {
   return wrap;
 }
 
+// Two-series version of buildTrendChart: sessions + registrations on one
+// chart instead of two stacked ones. The two series differ by 3+ orders of
+// magnitude (hundreds of thousands vs. low hundreds), so a single shared
+// y-scale would flatten the registrations line to nothing -- each series is
+// scaled to its OWN max instead (no numeric axis is drawn either way, same
+// as the single-series chart, so this never implies the two curves are on
+// one comparable scale). Labels are anchored above the sessions line and
+// below the registrations line so they can't collide even on days both
+// series have a point.
+function buildDualTrendChart(seriesA, seriesB) {
+  const wrap = document.createElement("div"); wrap.className = "trend-wrap";
+  const allDates = Array.from(new Set([...(seriesA.points||[]).map(p=>p.date), ...(seriesB.points||[]).map(p=>p.date)])).sort();
+  if (allDates.length < 2) {
+    const note = document.createElement("div"); note.className = "note-banner small";
+    note.innerHTML = `<b>Пока недостаточно данных.</b> График появится, когда накопится несколько дней статистики.`;
+    wrap.appendChild(note);
+    return wrap;
+  }
+  const W = 640, H = 230, padL = 20, padR = 20, padT = 40, padB = 24;
+  const xStep = (W - padL - padR) / (allDates.length - 1);
+  const xFor = i => padL + i * xStep;
+  const dateIndex = new Map(allDates.map((d,i) => [d,i]));
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.classList.add("trend-svg");
+
+  const smoothPath = pts => {
+    if (pts.length < 3) return "M " + pts.map(c => c.join(",")).join(" L ");
+    let d = `M ${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? 0 : i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+      const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+    }
+    return d;
+  };
+
+  function drawSeries(series, labelAbove) {
+    const pts = (series.points || []).filter(p => dateIndex.has(p.date));
+    if (pts.length < 2) return;
+    const max = Math.max(...pts.map(p => p[series.key]), 1);
+    const yFor = v => padT + (H - padT - padB) * (1 - v / max);
+    const coords = pts.map(p => [xFor(dateIndex.get(p.date)), yFor(p[series.key])]);
+    const color = cssVar(series.colorVar);
+
+    const line = document.createElementNS(svgNS, "path");
+    line.setAttribute("d", smoothPath(coords));
+    line.setAttribute("fill", "none");
+    line.setAttribute("stroke", color);
+    line.setAttribute("stroke-width", "3");
+    line.setAttribute("stroke-linejoin", "round");
+    line.setAttribute("stroke-linecap", "round");
+    svg.appendChild(line);
+    const len = line.getTotalLength();
+    line.style.strokeDasharray = String(len);
+    line.style.strokeDashoffset = String(len);
+    line.style.transition = "stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)";
+    setTimeout(() => { line.style.strokeDashoffset = "0"; }, 20);
+
+    pts.forEach((p, i) => {
+      const [cx, cy] = coords[i];
+      const dot = document.createElementNS(svgNS, "circle");
+      dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("r", "4");
+      dot.setAttribute("fill", color);
+      dot.setAttribute("stroke", cssVar("--surface-1")); dot.setAttribute("stroke-width", "1.5");
+      svg.appendChild(dot);
+
+      const valLabel = document.createElementNS(svgNS, "text");
+      valLabel.setAttribute("x", cx);
+      valLabel.setAttribute("y", labelAbove ? Math.max(cy - 10, 12) : Math.min(cy + 18, H - padB - 2));
+      valLabel.setAttribute("text-anchor", "middle");
+      valLabel.setAttribute("class", "trend-value-label");
+      valLabel.style.fill = color;
+      valLabel.textContent = fmtInt(p[series.key]);
+      svg.appendChild(valLabel);
+
+      const hit = document.createElementNS(svgNS, "circle");
+      hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", "14");
+      hit.setAttribute("fill", "transparent"); hit.style.cursor = "default";
+      hit.addEventListener("pointermove", ev => showTip(ev.clientX, ev.clientY, fmtDate(p.date), `${series.label}: ${fmtInt(p[series.key])}`));
+      hit.addEventListener("pointerleave", hideTip);
+      svg.appendChild(hit);
+    });
+  }
+
+  drawSeries(seriesA, true);
+  drawSeries(seriesB, false);
+
+  const labelEvery = Math.ceil(allDates.length / 8);
+  allDates.forEach((d, i) => {
+    if (i % labelEvery === 0 || i === allDates.length - 1) {
+      const t = document.createElementNS(svgNS, "text");
+      t.setAttribute("x", xFor(i)); t.setAttribute("y", H - 6); t.setAttribute("text-anchor", "middle");
+      t.setAttribute("class", "trend-axis-label");
+      t.textContent = fmtDate(d);
+      svg.appendChild(t);
+    }
+  });
+
+  wrap.appendChild(svg);
+
+  const legend = document.createElement("div");
+  legend.style.cssText = "display:flex;gap:18px;margin-top:6px;font-size:12px;color:var(--text-secondary);";
+  [seriesA, seriesB].forEach(s => {
+    const item = document.createElement("span");
+    item.style.cssText = "display:inline-flex;align-items:center;gap:6px;";
+    const dot = document.createElement("span");
+    dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${cssVar(s.colorVar)};display:inline-block;`;
+    item.append(dot, document.createTextNode(s.label));
+    legend.appendChild(item);
+  });
+  wrap.appendChild(legend);
+
+  return wrap;
+}
+
 function buildTable(headers, rows, alignRightFrom) {
   const table = document.createElement("table"); table.className = "data-table";
   const thead = document.createElement("thead"); const trh = document.createElement("tr");
@@ -1250,33 +1370,6 @@ function buildCountryTable(countries) {
   const tbody = document.createElement("tbody");
   const sorted = (countries || []).slice().sort((a,b) => b.sessions - a.sessions);
 
-  // totals row: computed over ALL countries (not just the visible top 10), so
-  // it stays correct whether the "показать ещё" list is expanded or not
-  const totalSessions = sorted.reduce((s,c) => s + (c.sessions||0), 0);
-  const totalUsers = sorted.reduce((s,c) => s + (c.totalUsers||0), 0);
-  const totalSignUps = sorted.reduce((s,c) => s + (c.signUps||0), 0);
-  const totalBounceW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.bounceRate||0), 0);
-  const totalEngW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.engagementRate||0), 0);
-  if (sorted.length) {
-    const totalTr = document.createElement("tr"); totalTr.style.fontWeight = "600"; totalTr.style.borderTop = "2px solid var(--grid)";
-    const totalCells = [
-      "Итого",
-      fmtInt(totalSessions),
-      fmtInt(totalUsers),
-      totalSessions ? fmtPct(totalBounceW / totalSessions) : "—",
-      totalSessions ? fmtPct(totalEngW / totalSessions) : "—",
-      totalSignUps ? fmtInt(totalSignUps) : "—",
-      totalSessions && totalSignUps ? fmtPct(totalSignUps / totalSessions * 100) : "—",
-    ];
-    totalCells.forEach((val, i) => {
-      const td = document.createElement("td");
-      td.className = i === 0 ? "name-cell" : "num";
-      td.textContent = val;
-      totalTr.appendChild(td);
-    });
-    tbody.appendChild(totalTr);
-  }
-
   const makeRow = (c, hidden) => {
     const tr = document.createElement("tr");
     if (hidden) tr.style.display = "none";
@@ -1316,6 +1409,38 @@ function buildCountryTable(countries) {
     toggleTd.appendChild(toggleBtn); toggleTr.appendChild(toggleTd);
     tbody.appendChild(toggleTr);
   }
+
+  // totals row -- computed over ALL countries (not just the visible top 10),
+  // pinned at the end so it reads as a summary, not just another country;
+  // distinct styling (bold, tinted background, neutral ink) so it doesn't
+  // blend into the blue-link-colored country names above it.
+  if (sorted.length) {
+    const totalSessions = sorted.reduce((s,c) => s + (c.sessions||0), 0);
+    const totalUsers = sorted.reduce((s,c) => s + (c.totalUsers||0), 0);
+    const totalSignUps = sorted.reduce((s,c) => s + (c.signUps||0), 0);
+    const totalBounceW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.bounceRate||0), 0);
+    const totalEngW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.engagementRate||0), 0);
+    const totalTr = document.createElement("tr");
+    totalTr.style.cssText = "font-weight:600;border-top:2px solid var(--grid);background:color-mix(in srgb, var(--brand-a) 5%, transparent);";
+    const totalCells = [
+      "Итого",
+      fmtInt(totalSessions),
+      fmtInt(totalUsers),
+      totalSessions ? fmtPct(totalBounceW / totalSessions) : "—",
+      totalSessions ? fmtPct(totalEngW / totalSessions) : "—",
+      totalSignUps ? fmtInt(totalSignUps) : "—",
+      totalSessions && totalSignUps ? fmtPct(totalSignUps / totalSessions * 100) : "—",
+    ];
+    totalCells.forEach((val, i) => {
+      const td = document.createElement("td");
+      td.className = i === 0 ? "name-cell" : "num";
+      if (i === 0) td.style.color = "var(--text-primary)";
+      td.textContent = val;
+      totalTr.appendChild(td);
+    });
+    tbody.appendChild(totalTr);
+  }
+
   table.appendChild(tbody);
   return table;
 }
@@ -1701,21 +1826,18 @@ function renderTab(containerId, p, deviceLabel) {
     }
 
     // ---- traffic trend (also filter-reactive) ----
-    sectionTitle(belowFilterZone, "Динамика трафика по дням", "сессии в день");
+    // One chart, two curves (sessions in blue, registrations in green) instead
+    // of two stacked charts -- registrations only use the clean post-fix
+    // window (see SIGN_UP_SUCCESS_CLEAN_START server-side), so that curve
+    // naturally starts later than the sessions curve when the period spans
+    // the bugged days, instead of plotting inflated counts.
+    sectionTitle(belowFilterZone, "Динамика трафика и регистраций по дням", "сессии и успешные регистрации в день");
     const trendCard = document.createElement("div"); trendCard.className = "card reveal";
-    trendCard.appendChild(buildTrendChart(fTrend || [], "sessions", "Сессии"));
+    trendCard.appendChild(buildDualTrendChart(
+      { points: fTrend || [], key: "sessions", label: "Сессии", colorVar: "--series-1" },
+      { points: fRegTrend, key: "count", label: "Регистрации", colorVar: "--good" }
+    ));
     belowFilterZone.appendChild(trendCard);
-
-    // Registrations only use the clean post-fix window (see
-    // SIGN_UP_SUCCESS_CLEAN_START server-side) -- so this chart naturally
-    // starts later than the sessions chart when the period spans the bugged
-    // days, instead of plotting inflated counts.
-    if (fRegTrend.length) {
-      sectionTitle(belowFilterZone, "Динамика регистраций по дням", "успешных регистраций в день");
-      const regTrendCard = document.createElement("div"); regTrendCard.className = "card reveal";
-      regTrendCard.appendChild(buildTrendChart(fRegTrend, "count", "Регистрации"));
-      belowFilterZone.appendChild(regTrendCard);
-    }
 
     // kpiZone/belowFilterZone are rebuilt from scratch on every filter change, so
     // freshly-created .reveal elements start at opacity:0 again each time — must
@@ -1787,7 +1909,16 @@ function renderTab(containerId, p, deviceLabel) {
     ];
     cells.forEach((c, i) => {
       const td = document.createElement("td");
-      if (i === 0) td.className = "name-cell"; else td.className = "num";
+      if (i === 0) {
+        // long paths (e.g. /ru/live/mortal-kombat/1252965-mortal-kombat-x)
+        // wrapped to 3 lines and broke row alignment -- truncate to one line
+        // with an ellipsis instead, full path still available on hover.
+        td.className = "name-cell";
+        td.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;";
+        td.title = c;
+      } else {
+        td.className = "num";
+      }
       td.textContent = c;
       tr.appendChild(td);
     });

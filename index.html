@@ -600,6 +600,34 @@ const GLOSSARY = {
   promo_panel_open:        { label: "Открытие панели промокода",     desc: "Клиент открыл панель ввода промокода." },
 };
 const KNOWN_EVENT_ORDER = Object.keys(GLOSSARY);
+
+// Business priority, not firing volume -- page_view/session_start always win
+// a count-sort and bury the events that actually matter (a registration is
+// worth more than a million page views). Order: money/conversion outcomes
+// first, then the funnel steps leading to them, then friction/drop-off
+// signals (diagnostic value), then account/login funnel, then secondary
+// engagement clicks, then passive/technical/system events last.
+const EVENT_PRIORITY_ORDER = [
+  // core conversion outcomes
+  "sign_up_success", "bet_placed", "deposit_click", "withdraw_click",
+  // registration funnel steps (leading indicators)
+  "reg_form_start", "sign_up_method_select", "reg_submit_click", "reg_full_submit",
+  "sign_up_start", "reg_page_view",
+  // friction / drop-off signals
+  "reg_abandon", "reg_otp_error", "deposit_abandon", "bet_error", "login_error", "password_reset_error",
+  // login / account funnel
+  "login_start", "login_success", "password_reset_start", "password_reset_code_sent",
+  "password_reset_submit", "forgot_password_click",
+  // secondary engagement clicks
+  "cta_click", "deposit_button_click", "promo_panel_open", "bonus_activate_click", "coupon_sale_click",
+  "login_social_click", "app_download_click", "bet_slip_view", "chat_open", "search_use",
+  "social_footer_click", "promo_click", "nav_click", "footer_click", "sidebar_click",
+  "settings_open", "switch_to_mobile_click",
+  // passive / technical / system events
+  "scroll_depth", "scroll", "page_load_time", "user_engagement", "form_start",
+  "session_start", "first_visit", "page_view",
+];
+const EVENT_PRIORITY_INDEX = new Map(EVENT_PRIORITY_ORDER.map((name, i) => [name, i]));
 const BUSINESS_EVENTS = KNOWN_EVENT_ORDER.filter(n => !GLOSSARY[n].system);
 
 const KPI_TIPS = {
@@ -2261,8 +2289,9 @@ function renderTab(containerId, p, deviceLabel) {
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const allNames = KNOWN_EVENT_ORDER.slice().sort((a,b) => {
-    const ca = (fEvents[a] && fEvents[a].count) || 0, cb = (fEvents[b] && fEvents[b].count) || 0;
-    return cb - ca;
+    const pa = EVENT_PRIORITY_INDEX.has(a) ? EVENT_PRIORITY_INDEX.get(a) : EVENT_PRIORITY_ORDER.length;
+    const pb = EVENT_PRIORITY_INDEX.has(b) ? EVENT_PRIORITY_INDEX.get(b) : EVENT_PRIORITY_ORDER.length;
+    return pa - pb;
   });
   const VISIBLE_ROWS = 10;
   allNames.forEach((name, idx) => {
@@ -2658,10 +2687,7 @@ async function initReport() {
   // site switcher
   const siteSelect = document.getElementById("site-switcher");
   const siteList = data.site_list || ["betwinner.com"];
-  siteSelect.innerHTML = siteList.map(s => {
-    const full = s === "betwinner.com" || (data.sites && data.sites[s] && data.sites[s].has_events === true);
-    return `<option value="${s}">${s}${full ? " (полный отчёт)" : ""}</option>`;
-  }).join("");
+  siteSelect.innerHTML = siteList.map(s => `<option value="${s}">${s}</option>`).join("");
   siteSelect.value = "betwinner.com";
   siteSelect.addEventListener("change", () => renderAll(siteSelect.value));
 

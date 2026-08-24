@@ -508,7 +508,7 @@
   <div class="tab-panel" id="panel-mobile"></div>
   <div id="panel-site-lite" style="display:none;"></div>
 
-  <footer class="report-footer">
+  <footer class="report-footer" id="report-footer">
     Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 17.08.2026 (день запуска аналитики на betwinner.com). Автор: Андрей, веб-аналитик.
   </footer>
 </div>
@@ -2587,18 +2587,22 @@ function onPeriodChange() { renderAll(CURRENT_SITE); }
 function renderAll(site) {
   const data = REPORT_DATA;
   CURRENT_SITE = site;
-  const isMain = site === "betwinner.com";
+  const siteEntry = data.sites ? data.sites[site] : null;
+  const isMain = site === "betwinner.com" || (siteEntry && siteEntry.has_events === true);
   document.getElementById("device-tabs").style.display = isMain ? "" : "none";
   document.getElementById("panel-site-lite").style.display = isMain ? "none" : "";
   document.getElementById("period-picker").style.display = isMain ? "" : "none";
 
   if (isMain) {
-    buildPeriodPicker((data.properties.desktop.trend || []).map(t => t.date).sort());
+    // betwinner.com's full data lives at data.properties (legacy/back-compat
+    // key); every other fully-tracked site (has_events===true) lives at
+    // data.sites[site] with the identical desktop/mobile field shape.
+    const desktop = site === "betwinner.com" ? data.properties.desktop : siteEntry.desktop;
+    const mobile = site === "betwinner.com" ? data.properties.mobile : siteEntry.mobile;
+    buildPeriodPicker((desktop.trend || []).map(t => t.date).sort());
     // renderTab derives every number from filter_session_rows/filter_event_rows
     // via filterSessionRows/filterEventRows, which already bake in the current
     // period selection (see inPeriodRange) -- no need to pre-filter p here.
-    const desktop = data.properties.desktop;
-    const mobile = data.properties.mobile;
     const combined = combineProps(desktop, mobile);
     renderTab("panel-combined", combined, "ПК + Моб суммарно.");
     renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
@@ -2611,8 +2615,14 @@ function renderAll(site) {
     const activeBtn = document.querySelector("#device-tabs .tab-btn.active") || document.querySelector("#device-tabs .tab-btn");
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     document.getElementById("panel-" + activeBtn.dataset.tab).classList.add("active");
-    document.getElementById("report-title").textContent = "betwinner.com — веб-аналитика";
-    document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4 · дефолт-домен, шаблон для остальных`;
+    document.getElementById("report-title").textContent = `${site} — веб-аналитика`;
+    document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4${site === "betwinner.com" ? " · дефолт-домен, шаблон для остальных" : ""}`;
+    // launch date shown here must track the site actually on screen -- keep
+    // in sync with SITE_LAUNCH_DATES in scripts/ga4_fetch_report_data.py
+    const launchDates = { "betwinner.com": "17.08.2026", "betwinner.ke": "17.08.2026" };
+    const launchDate = launchDates[site] || "17.08.2026";
+    document.getElementById("report-footer").textContent =
+      `Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с ${launchDate} (день запуска аналитики на ${site}). Автор: Андрей, веб-аналитик.`;
   } else {
     // switching to a site-switcher (lite) domain: none of the 3 tab-panels
     // should show through underneath panel-site-lite.
@@ -2648,7 +2658,10 @@ async function initReport() {
   // site switcher
   const siteSelect = document.getElementById("site-switcher");
   const siteList = data.site_list || ["betwinner.com"];
-  siteSelect.innerHTML = siteList.map(s => `<option value="${s}">${s}${s === "betwinner.com" ? " (полный отчёт)" : ""}</option>`).join("");
+  siteSelect.innerHTML = siteList.map(s => {
+    const full = s === "betwinner.com" || (data.sites && data.sites[s] && data.sites[s].has_events === true);
+    return `<option value="${s}">${s}${full ? " (полный отчёт)" : ""}</option>`;
+  }).join("");
   siteSelect.value = "betwinner.com";
   siteSelect.addEventListener("change", () => renderAll(siteSelect.value));
 

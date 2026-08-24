@@ -509,7 +509,7 @@
   <div id="panel-site-lite" style="display:none;"></div>
 
   <footer class="report-footer">
-    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 01.08.2026: 01–16.08 — из старой (нативной) аналитики сайта (сессии/страны/каналы/устройства и регистрации по событию reg_done; остальные пользовательские события до 17.08 не собирались), с 17.08.2026 — из новой аналитики GTM (день запуска нашего трекинга на betwinner.com). Автор: Андрей, веб-аналитик.
+    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 01.08.2026: 01–17.08 — трафик (сессии/страны/каналы/устройства) из старой (нативной) аналитики сайта; регистрации и остальные пользовательские события до 17.08 не собирались и не показываются. С 17.08.2026 — полностью из новой аналитики GTM (день запуска нашего трекинга на betwinner.com). Автор: Андрей, веб-аналитик.
   </footer>
 </div>
 
@@ -1172,16 +1172,21 @@ function buildTrendChart(points, key, label, colorVar) {
     svg.appendChild(dot);
     setTimeout(() => { dot.style.opacity = "1"; dot.style.transform = "scale(1)"; }, 20);
 
-    // value label above each point — outlined so it stays legible over the line/area
-    const valLabel = document.createElementNS(svgNS, "text");
-    valLabel.setAttribute("x", cx); valLabel.setAttribute("y", Math.max(cy - 10, 11));
-    valLabel.setAttribute("text-anchor", "middle");
-    valLabel.setAttribute("class", "trend-value-label");
-    valLabel.textContent = fmtCompact(p[key]);
-    valLabel.style.opacity = "0"; valLabel.style.transition = "opacity .3s ease";
-    valLabel.style.transitionDelay = (0.25 + i * (1.0 / points.length)) + "s";
-    svg.appendChild(valLabel);
-    setTimeout(() => { valLabel.style.opacity = "1"; }, 20);
+    // Value label above each point -- but only at the same sparse cadence as
+    // the date labels below (every point stopped fitting once the chart grew
+    // past ~10 days; with a real Y-axis now drawn, a label on every point
+    // isn't load-bearing anymore -- exact values are always one hover away).
+    if (i % labelEvery === 0 || i === points.length - 1) {
+      const valLabel = document.createElementNS(svgNS, "text");
+      valLabel.setAttribute("x", cx); valLabel.setAttribute("y", Math.max(cy - 10, 11));
+      valLabel.setAttribute("text-anchor", "middle");
+      valLabel.setAttribute("class", "trend-value-label");
+      valLabel.textContent = fmtCompact(p[key]);
+      valLabel.style.opacity = "0"; valLabel.style.transition = "opacity .3s ease";
+      valLabel.style.transitionDelay = (0.25 + i * (1.0 / points.length)) + "s";
+      svg.appendChild(valLabel);
+      setTimeout(() => { valLabel.style.opacity = "1"; }, 20);
+    }
 
     const hit = document.createElementNS(svgNS, "circle");
     hit.setAttribute("cx", cx); hit.setAttribute("cy", cy); hit.setAttribute("r", "14");
@@ -1384,6 +1389,128 @@ function buildCountryTable(countries) {
   return table;
 }
 
+// Clears and rebuilds the "Новые и вернувшиеся" card content -- called from
+// renderDynamic so it reacts to the period/filter selection instead of
+// always showing the full-period split.
+function buildNvrCardContent(container, nvr, periodSessionRows) {
+  container.innerHTML = "";
+  const nvrTotal = Math.max((nvr?.new || 0) + (nvr?.returning || 0) + (nvr?.unclassified || 0), 1);
+  const stat = document.createElement("div"); stat.className = "split-stat";
+  const mk = (label, val, tip) => {
+    const item = document.createElement("div"); item.className = "split-stat-item"; item.tabIndex = 0;
+    const n = document.createElement("div"); n.className = "n"; n.textContent = fmtInt(val) + " (" + Math.round(val/nvrTotal*100) + "%)";
+    const l = document.createElement("div"); l.className = "l"; l.textContent = label;
+    item.append(n, l);
+    bindTip(item, label, tip);
+    return item;
+  };
+  stat.appendChild(mk("Новые посетители", nvr?.new || 0, "Люди, для которых это первый зафиксированный визит на сайт."));
+  stat.appendChild(mk("Вернувшиеся посетители", nvr?.returning || 0, "Люди, которые уже были на сайте раньше и пришли снова."));
+  if (nvr?.unclassified) {
+    stat.appendChild(mk("Пока не классифицировано", nvr.unclassified, "GA4 ещё не определил, новый это посетитель или вернувшийся — обычно из-за небольшого объёма данных в первые дни после запуска. Это НЕ значит 0 вернувшихся."));
+  }
+  container.appendChild(stat);
+  const bar = document.createElement("div"); bar.className = "split-bar";
+  const seg = (val, color) => { const s = document.createElement("div"); s.style.width = (val/nvrTotal*100) + "%"; s.style.background = color; return s; };
+  bar.appendChild(seg(nvr?.new || 0, cssVar("--series-1")));
+  bar.appendChild(seg(nvr?.returning || 0, cssVar("--series-3")));
+  bar.appendChild(seg(nvr?.unclassified || 0, cssVar("--grid")));
+  container.appendChild(bar);
+
+  // Comparison table -- the split% alone doesn't say anything actionable.
+  // This answers the actual question: do new or returning visitors behave
+  // differently, and which segment actually converts to registration?
+  if (nvr?.detail) {
+    const cmpTitle = document.createElement("div");
+    cmpTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
+    cmpTitle.textContent = "Сравнение по качеству и конверсии";
+    container.appendChild(cmpTitle);
+    const cmpTable = document.createElement("table"); cmpTable.className = "data-table";
+    const cmpThead = document.createElement("thead");
+    cmpThead.innerHTML = `<tr>
+      <th>Сегмент</th>
+      <th style="text-align:right">Сессии</th>
+      <th style="text-align:right">Польз.</th>
+      <th style="text-align:right">Отказы</th>
+      <th style="text-align:right">Вовлечённость</th>
+      <th style="text-align:right">Ср. время</th>
+      <th style="text-align:right" title="Сколько сессий этого сегмента дошли хотя бы до начала заполнения формы регистрации.">Начали рег. ⓘ</th>
+      <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»).">Регистраций ⓘ</th>
+      <th style="text-align:right">Конверсия</th>
+    </tr>`;
+    cmpTable.appendChild(cmpThead);
+    const cmpTbody = document.createElement("tbody");
+    const segments = [["new", "Новые"], ["returning", "Вернувшиеся"]];
+    if (nvr.detail.unclassified?.sessions) segments.push(["unclassified", "Не классифицировано"]);
+    segments.forEach(([key, label]) => {
+      const d = nvr.detail[key] || {};
+      const tr = document.createElement("tr");
+      const cells = [
+        label,
+        fmtInt(d.sessions || 0),
+        d.totalUsers ? fmtInt(d.totalUsers) : "—",
+        d.sessions ? fmtPct(d.bounceRate) : "—",
+        d.sessions ? fmtPct(d.engagementRate) : "—",
+        d.avgSessionSec ? fmtDur(d.avgSessionSec) : "—",
+        d.regStarts ? fmtInt(d.regStarts) : "—",
+        d.signUps ? fmtInt(d.signUps) : "—",
+        d.sessions && d.signUps ? fmtPct(d.signUpRate) : "—",
+      ];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        td.className = i === 0 ? "name-cell" : "num";
+        td.textContent = c;
+        tr.appendChild(td);
+      });
+      cmpTbody.appendChild(tr);
+    });
+    cmpTable.appendChild(cmpTbody);
+    container.appendChild(cmpTable);
+  }
+
+  // daily breakdown -- a single aggregate split hides whether the new/
+  // returning mix is stable or shifting (e.g. a campaign that only brings
+  // one-time visitors, or a loyalty dip after a bad release).
+  if (periodSessionRows && periodSessionRows.length) {
+    const byDate = new Map();
+    periodSessionRows.forEach(r => {
+      if (!byDate.has(r.date)) byDate.set(r.date, { new: 0, returning: 0, unclassified: 0 });
+      const bucket = byDate.get(r.date);
+      if (r.nvr === "new") bucket.new += r.sessions;
+      else if (r.nvr === "returning") bucket.returning += r.sessions;
+      else bucket.unclassified += r.sessions;
+    });
+    const days = Array.from(byDate.keys()).sort();
+    if (days.length > 1) {
+      const trendTitle = document.createElement("div");
+      trendTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
+      trendTitle.textContent = "Динамика по дням — доля новых/вернувшихся";
+      container.appendChild(trendTitle);
+      const dayMax = Math.max(...days.map(d => { const b = byDate.get(d); return b.new + b.returning + b.unclassified; }), 1);
+      const chartRow = document.createElement("div");
+      chartRow.style.cssText = "display:flex;align-items:flex-end;gap:4px;height:90px;";
+      days.forEach(d => {
+        const b = byDate.get(d);
+        const total = b.new + b.returning + b.unclassified;
+        const outer = document.createElement("div");
+        outer.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:stretch;height:90px;justify-content:flex-end;";
+        const colWrap = document.createElement("div");
+        colWrap.tabIndex = 0;
+        colWrap.style.cssText = `display:flex;flex-direction:column-reverse;height:${Math.max(total/dayMax*100,3)}%;border-radius:3px;overflow:hidden;cursor:pointer;`;
+        const segNew = document.createElement("div"); segNew.style.cssText = `background:${cssVar("--series-1")};height:${total?b.new/total*100:0}%;min-height:${b.new?1:0}px;`;
+        const segRet = document.createElement("div"); segRet.style.cssText = `background:${cssVar("--series-3")};height:${total?b.returning/total*100:0}%;min-height:${b.returning?1:0}px;`;
+        const segUn = document.createElement("div"); segUn.style.cssText = `background:${cssVar("--grid")};height:${total?b.unclassified/total*100:0}%;min-height:${b.unclassified?1:0}px;`;
+        colWrap.append(segNew, segRet, segUn);
+        const pctNew = total ? Math.round(b.new/total*100) : 0;
+        bindTip(colWrap, d, `${d}: новых ${fmtInt(b.new)} (${pctNew}%), вернувшихся ${fmtInt(b.returning)}${b.unclassified ? ", не классифицировано " + fmtInt(b.unclassified) : ""} — всего ${fmtInt(total)} сессий`);
+        outer.appendChild(colWrap);
+        chartRow.appendChild(outer);
+      });
+      container.appendChild(chartRow);
+    }
+  }
+}
+
 /* ===================== KPI tile ===================== */
 const KPI_ICONS = {
   sessions: '<path d="M3 12h4l2.5 7L13 4l2.5 8H21" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -1499,6 +1626,66 @@ function computeFilteredEventTrend(eventRows, eventName) {
     map.get(r.date).count += r.count;
   });
   return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+// Client-side breakdowns for the sections that CAN be made period-reactive
+// from the existing flat tables (country/os/newVsReturning are all captured
+// per-row) -- mirrors the shape each section's render code already expects,
+// so the same downstream table/donut/card-building functions work whether
+// fed the server-computed full-period version or this filtered one.
+function computeCountryBreakdown(sessionRows, eventRows) {
+  const map = new Map();
+  (sessionRows || []).forEach(r => {
+    if (!map.has(r.country)) map.set(r.country, { name: r.country, sessions: 0, totalUsers: 0, signUps: 0, _bounceSessions: 0, _engagedSessions: 0 });
+    const acc = map.get(r.country);
+    acc.sessions += r.sessions; acc.totalUsers += r.totalUsers;
+    acc._bounceSessions += r.bounceSessions || 0; acc._engagedSessions += r.engagedSessions || 0;
+  });
+  (eventRows || []).forEach(r => {
+    if (r.event !== "sign_up_success") return;
+    if (!map.has(r.country)) map.set(r.country, { name: r.country, sessions: 0, totalUsers: 0, signUps: 0, _bounceSessions: 0, _engagedSessions: 0 });
+    map.get(r.country).signUps += r.count;
+  });
+  return Array.from(map.values()).map(acc => ({
+    name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, signUps: acc.signUps,
+    bounceRate: acc.sessions ? acc._bounceSessions / acc.sessions * 100 : 0,
+    engagementRate: acc.sessions ? acc._engagedSessions / acc.sessions * 100 : 0,
+  })).sort((a,b) => b.sessions - a.sessions);
+}
+function computeOsBreakdown(sessionRows) {
+  const map = new Map();
+  (sessionRows || []).forEach(r => map.set(r.os, (map.get(r.os) || 0) + r.sessions));
+  return Array.from(map.entries()).map(([name, sessions]) => ({ name: osLabel(name), sessions })).sort((a,b) => b.sessions - a.sessions);
+}
+function computeNvrFromRows(sessionRows, eventRows) {
+  const mk = () => ({ sessions: 0, totalUsers: 0, bounceSessions: 0, engagedSessions: 0, durSum: 0, regStarts: 0, signUps: 0 });
+  const acc = { new: mk(), returning: mk(), unclassified: mk() };
+  const bucketOf = nvr => nvr === "new" ? "new" : nvr === "returning" ? "returning" : "unclassified";
+  (sessionRows || []).forEach(r => {
+    const a = acc[bucketOf(r.nvr)];
+    a.sessions += r.sessions; a.totalUsers += r.totalUsers;
+    a.bounceSessions += r.bounceSessions || 0; a.engagedSessions += r.engagedSessions || 0;
+    a.durSum += r.engagementDurationSec || 0;
+  });
+  (eventRows || []).forEach(r => {
+    const a = acc[bucketOf(r.nvr)];
+    if (r.event === "reg_form_start") a.regStarts += r.count;
+    if (r.event === "sign_up_success") a.signUps += r.count;
+  });
+  const out = { new: 0, returning: 0, unclassified: 0, detail: {} };
+  ["new", "returning", "unclassified"].forEach(key => {
+    const a = acc[key];
+    out[key] = a.sessions;
+    out.detail[key] = {
+      sessions: a.sessions, totalUsers: a.totalUsers,
+      bounceRate: a.sessions ? a.bounceSessions / a.sessions * 100 : 0,
+      engagementRate: a.sessions ? a.engagedSessions / a.sessions * 100 : 0,
+      avgSessionSec: a.sessions ? a.durSum / a.sessions : 0,
+      regStarts: a.regStarts, signUps: a.signUps,
+      signUpRate: a.sessions ? round2(a.signUps / a.sessions * 100) : 0,
+    };
+  });
+  return out;
 }
 
 /* ===================== calendar period picker (неделя/месяц/квартал) ===================== */
@@ -1688,15 +1875,33 @@ function renderTab(containerId, p, deviceLabel) {
   const belowFilterZone = document.createElement("div");
   let funnelMode = "all"; // funnel-only toggle: "all" visitors vs "new" visitors
 
+  // Persistent content containers for the sections below that CAN react to
+  // the period/filter selection from data already in filter_session_rows/
+  // filter_event_rows (country, os, new-vs-returning, event counts all
+  // carry those dimensions). Created once, repopulated by renderDynamic on
+  // every call -- by the time they're appended into the page further down,
+  // the initial renderDynamic(initialFilters) call below has already filled
+  // them once. Источники (per-source, not just per-channel) and Топ
+  // посадочных страниц stay static/full-period -- landingPage and the fine
+  // sessionSourceMedium dimension were never captured in the flat tables,
+  // so those two specifically can't be rebuilt client-side without a much
+  // bigger backend change (adding 2 more high-cardinality dimensions to
+  // every row would multiply the already-large data.json size).
+  const geoCard = document.createElement("div"); geoCard.className = "card";
+  const osCard = document.createElement("div");
+  const evCard = document.createElement("div"); evCard.className = "card";
+  const nvrCard = document.createElement("div"); nvrCard.className = "card";
+
   function renderDynamic(filters) {
     const fSessionRows = hasFlat ? filterSessionRows(sessionRows, filters) : null;
     const fTotals = hasFlat ? computeFilteredTotals(fSessionRows) : totals;
     // KPI tiles above the funnel always reflect ALL visitors -- only the funnel
     // diagram itself reacts to the "Все посетители"/"Только новые" toggle.
-    const fEventsAll = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, "all")) : events;
+    const fEventRowsAll = hasFlat ? filterEventRows(eventRows, filters, "all") : [];
+    const fEventsAll = hasFlat ? computeFilteredEvents(fEventRowsAll) : events;
     const fEventsFunnel = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, funnelMode)) : events;
     const fTrend = hasFlat ? computeFilteredTrend(fSessionRows) : trend;
-    const fRegTrend = hasFlat ? computeFilteredEventTrend(filterEventRows(eventRows, filters, "all"), "sign_up_success") : [];
+    const fRegTrend = hasFlat ? computeFilteredEventTrend(fEventRowsAll, "sign_up_success") : [];
 
     // Funnel + conversion rates are USER-based, not session-based: a person
     // can visit several times before registering (or while filling the form
@@ -1826,6 +2031,23 @@ function renderTab(containerId, p, deviceLabel) {
       belowFilterZone.appendChild(regTrendCard);
     }
 
+    // Reactive sections below (feasible from the flat rows -- country/os/
+    // new-vs-returning/event counts all carry those dimensions per row;
+    // Источники/Топ посадочных страниц/Браузеры can't be, see notes above).
+    if (hasFlat) {
+      geoCard.innerHTML = "";
+      geoCard.appendChild(buildCountryTable(computeCountryBreakdown(fSessionRows, fEventRowsAll)));
+      osCard.innerHTML = "";
+      osCard.appendChild(donutBlock("Операционные системы", computeOsBreakdown(fSessionRows), "sessions"));
+      buildEventsTableCard(evCard, fEventsAll, fTotals.totalUsers);
+      buildNvrCardContent(nvrCard, computeNvrFromRows(fSessionRows, fEventRowsAll), fSessionRows);
+    } else {
+      geoCard.innerHTML = ""; geoCard.appendChild(buildCountryTable(countries || []));
+      osCard.innerHTML = ""; osCard.appendChild(donutBlock("Операционные системы", oses, "sessions"));
+      buildEventsTableCard(evCard, events, totals.totalUsers);
+      buildNvrCardContent(nvrCard, nvr, null);
+    }
+
     // kpiZone/belowFilterZone are rebuilt from scratch on every filter change, so
     // freshly-created .reveal elements start at opacity:0 again each time — must
     // re-trigger the entrance transition here, not just once on initial page load,
@@ -1851,9 +2073,7 @@ function renderTab(containerId, p, deviceLabel) {
   srcCard.appendChild(buildSourceGroupTable(channels, sources));
   srcBody.appendChild(srcCard);
 
-  const geoBody = collapsibleSection(el, "География", "какие страны реально дают регистрации, а не только трафик");
-  const geoCard = document.createElement("div"); geoCard.className = "card";
-  geoCard.appendChild(buildCountryTable(countries || []));
+  const geoBody = collapsibleSection(el, "География", "какие страны реально дают регистрации, а не только трафик — пересчитывается по выбранному периоду");
   geoBody.appendChild(geoCard);
 
   const lpBody = collapsibleSection(el, "Топ посадочных страниц", "с какой страницы человек начал визит — трафик, вовлечённость и весь путь до регистрации по каждой странице отдельно");
@@ -1915,138 +2135,27 @@ function renderTab(containerId, p, deviceLabel) {
   lpCard.appendChild(lpTable);
   lpBody.appendChild(lpCard);
 
-  const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители", "кто реально доходит до регистрации — новички или те, кто уже был на сайте");
-  const nvrCard = document.createElement("div"); nvrCard.className = "card";
-  const nvrTotal = Math.max((nvr?.new || 0) + (nvr?.returning || 0) + (nvr?.unclassified || 0), 1);
-  const stat = document.createElement("div"); stat.className = "split-stat";
-  const mk = (label, val, tip) => {
-    const item = document.createElement("div"); item.className = "split-stat-item"; item.tabIndex = 0;
-    const n = document.createElement("div"); n.className = "n"; n.textContent = fmtInt(val) + " (" + Math.round(val/nvrTotal*100) + "%)";
-    const l = document.createElement("div"); l.className = "l"; l.textContent = label;
-    item.append(n, l);
-    bindTip(item, label, tip);
-    return item;
-  };
-  stat.appendChild(mk("Новые посетители", nvr?.new || 0, "Люди, для которых это первый зафиксированный визит на сайт."));
-  stat.appendChild(mk("Вернувшиеся посетители", nvr?.returning || 0, "Люди, которые уже были на сайте раньше и пришли снова."));
-  if (nvr?.unclassified) {
-    stat.appendChild(mk("Пока не классифицировано", nvr.unclassified, "GA4 ещё не определил, новый это посетитель или вернувшийся — обычно из-за небольшого объёма данных в первые дни после запуска. Это НЕ значит 0 вернувшихся."));
-  }
-  nvrCard.appendChild(stat);
-  const bar = document.createElement("div"); bar.className = "split-bar";
-  const seg = (val, color) => { const s = document.createElement("div"); s.style.width = (val/nvrTotal*100) + "%"; s.style.background = color; return s; };
-  bar.appendChild(seg(nvr?.new || 0, cssVar("--series-1")));
-  bar.appendChild(seg(nvr?.returning || 0, cssVar("--series-3")));
-  bar.appendChild(seg(nvr?.unclassified || 0, cssVar("--grid")));
-  nvrCard.appendChild(bar);
-
-  // Comparison table -- the split% alone doesn't say anything actionable.
-  // This answers the actual question: do new or returning visitors behave
-  // differently, and which segment actually converts to registration?
-  if (nvr?.detail) {
-    const cmpTitle = document.createElement("div");
-    cmpTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
-    cmpTitle.textContent = "Сравнение по качеству и конверсии";
-    nvrCard.appendChild(cmpTitle);
-    const cmpTable = document.createElement("table"); cmpTable.className = "data-table";
-    const cmpThead = document.createElement("thead");
-    cmpThead.innerHTML = `<tr>
-      <th>Сегмент</th>
-      <th style="text-align:right">Сессии</th>
-      <th style="text-align:right">Польз.</th>
-      <th style="text-align:right">Отказы</th>
-      <th style="text-align:right">Вовлечённость</th>
-      <th style="text-align:right">Ср. время</th>
-      <th style="text-align:right" title="Сколько сессий этого сегмента дошли хотя бы до начала заполнения формы регистрации.">Начали рег. ⓘ</th>
-      <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»).">Регистраций ⓘ</th>
-      <th style="text-align:right">Конверсия</th>
-    </tr>`;
-    cmpTable.appendChild(cmpThead);
-    const cmpTbody = document.createElement("tbody");
-    const segments = [["new", "Новые"], ["returning", "Вернувшиеся"]];
-    if (nvr.detail.unclassified?.sessions) segments.push(["unclassified", "Не классифицировано"]);
-    segments.forEach(([key, label]) => {
-      const d = nvr.detail[key] || {};
-      const tr = document.createElement("tr");
-      const cells = [
-        label,
-        fmtInt(d.sessions || 0),
-        d.totalUsers ? fmtInt(d.totalUsers) : "—",
-        d.sessions ? fmtPct(d.bounceRate) : "—",
-        d.sessions ? fmtPct(d.engagementRate) : "—",
-        d.avgSessionSec ? fmtDur(d.avgSessionSec) : "—",
-        d.regStarts ? fmtInt(d.regStarts) : "—",
-        d.signUps ? fmtInt(d.signUps) : "—",
-        d.sessions && d.signUps ? fmtPct(d.signUpRate) : "—",
-      ];
-      cells.forEach((c, i) => {
-        const td = document.createElement("td");
-        td.className = i === 0 ? "name-cell" : "num";
-        td.textContent = c;
-        tr.appendChild(td);
-      });
-      cmpTbody.appendChild(tr);
-    });
-    cmpTable.appendChild(cmpTbody);
-    nvrCard.appendChild(cmpTable);
-  }
-
-  // daily breakdown -- a single aggregate split hides whether the new/
-  // returning mix is stable or shifting (e.g. a campaign that only brings
-  // one-time visitors, or a loyalty dip after a bad release).
-  if (hasFlat) {
-    // this section isn't inside renderDynamic (not reactive to the country/
-    // channel/os filter bar), so there's no fSessionRows here -- reuse the
-    // same "all/all/all" filter (which still applies the current period
-    // selection via inPeriodRange baked into filterSessionRows).
-    const nvrSessionRows = filterSessionRows(sessionRows, initialFilters);
-    const byDate = new Map();
-    nvrSessionRows.forEach(r => {
-      if (!byDate.has(r.date)) byDate.set(r.date, { new: 0, returning: 0, unclassified: 0 });
-      const bucket = byDate.get(r.date);
-      if (r.nvr === "new") bucket.new += r.sessions;
-      else if (r.nvr === "returning") bucket.returning += r.sessions;
-      else bucket.unclassified += r.sessions;
-    });
-    const days = Array.from(byDate.keys()).sort();
-    if (days.length > 1) {
-      const trendTitle = document.createElement("div");
-      trendTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
-      trendTitle.textContent = "Динамика по дням — доля новых/вернувшихся";
-      nvrCard.appendChild(trendTitle);
-      const dayMax = Math.max(...days.map(d => { const b = byDate.get(d); return b.new + b.returning + b.unclassified; }), 1);
-      const chartRow = document.createElement("div");
-      chartRow.style.cssText = "display:flex;align-items:flex-end;gap:4px;height:90px;";
-      days.forEach(d => {
-        const b = byDate.get(d);
-        const total = b.new + b.returning + b.unclassified;
-        const outer = document.createElement("div");
-        outer.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:stretch;height:90px;justify-content:flex-end;";
-        const colWrap = document.createElement("div");
-        colWrap.tabIndex = 0;
-        colWrap.style.cssText = `display:flex;flex-direction:column-reverse;height:${Math.max(total/dayMax*100,3)}%;border-radius:3px;overflow:hidden;cursor:pointer;`;
-        const segNew = document.createElement("div"); segNew.style.cssText = `background:${cssVar("--series-1")};height:${total?b.new/total*100:0}%;min-height:${b.new?1:0}px;`;
-        const segRet = document.createElement("div"); segRet.style.cssText = `background:${cssVar("--series-3")};height:${total?b.returning/total*100:0}%;min-height:${b.returning?1:0}px;`;
-        const segUn = document.createElement("div"); segUn.style.cssText = `background:${cssVar("--grid")};height:${total?b.unclassified/total*100:0}%;min-height:${b.unclassified?1:0}px;`;
-        colWrap.append(segNew, segRet, segUn);
-        const pctNew = total ? Math.round(b.new/total*100) : 0;
-        bindTip(colWrap, d, `${d}: новых ${fmtInt(b.new)} (${pctNew}%), вернувшихся ${fmtInt(b.returning)}${b.unclassified ? ", не классифицировано " + fmtInt(b.unclassified) : ""} — всего ${fmtInt(total)} сессий`);
-        outer.appendChild(colWrap);
-        chartRow.appendChild(outer);
-      });
-      nvrCard.appendChild(chartRow);
-    }
-  }
+  const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители", "кто реально доходит до регистрации — новички или те, кто уже был на сайте — пересчитывается по выбранному периоду");
   nvrBody.appendChild(nvrCard);
 
-  const techBody = collapsibleSection(el, "Устройства", "браузеры и операционные системы");
+  const techBody = collapsibleSection(el, "Устройства", "браузеры (за весь период) и операционные системы (по выбранному периоду)");
   const techCard = document.createElement("div"); techCard.className = "card two-col";
+  // Browsers stay full-period -- that dimension was never captured in the
+  // flat rows (only os/country/channel/nvr are), so it can't be recomputed
+  // per period client-side without a backend change.
   techCard.appendChild(donutBlock("Браузеры", browsers, "sessions"));
-  techCard.appendChild(donutBlock("Операционные системы", oses, "sessions"));
+  techCard.appendChild(osCard);
   techBody.appendChild(techCard);
 
-  // appendix: full events table (collapsed to first 10 rows)
-  const evBody = collapsibleSection(el, "Полный список отслеживаемых событий", deviceLabel);
+  // appendix: full events table (collapsed to first 10 rows) -- rebuilt by
+  // renderDynamic on every period/filter change (event detail breakdowns
+  // like "which CTA" stay full-period -- that join was never captured
+  // per-day in the flat tables).
+  const evBody = collapsibleSection(el, "Полный список отслеживаемых событий", deviceLabel + " — пересчитывается по выбранному периоду");
+  evBody.appendChild(evCard);
+
+  function buildEventsTableCard(container, fEvents, fUsersTotal) {
+  container.innerHTML = "";
   const card2 = document.createElement("div"); card2.className = "card";
   const table = document.createElement("table"); table.className = "events-table";
   const thead = document.createElement("thead");
@@ -2054,13 +2163,13 @@ function renderTab(containerId, p, deviceLabel) {
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const allNames = KNOWN_EVENT_ORDER.slice().sort((a,b) => {
-    const ca = (events[a] && events[a].count) || 0, cb = (events[b] && events[b].count) || 0;
+    const ca = (fEvents[a] && fEvents[a].count) || 0, cb = (fEvents[b] && fEvents[b].count) || 0;
     return cb - ca;
   });
   const VISIBLE_ROWS = 10;
   allNames.forEach((name, idx) => {
     const info = GLOSSARY[name];
-    const data = events[name];
+    const data = fEvents[name];
     const rawDetail = (eventDetails && eventDetails[name]) || [];
     const filtered = rawDetail.filter(d => d.value && d.value !== "(пусто)" && d.value !== "(not set)" && d.value !== "(none)");
     // The site is multi-language (visible tab text is captured as-is), so the
@@ -2096,7 +2205,7 @@ function renderTab(containerId, p, deviceLabel) {
       tdCount.appendChild(document.createElement("br")); tdCount.appendChild(tag);
     }
     const tdPct = document.createElement("td"); tdPct.className = "num";
-    tdPct.textContent = data && data.users && totals.totalUsers ? fmtPct(data.users/totals.totalUsers*100) : "—";
+    tdPct.textContent = data && data.users && fUsersTotal ? fmtPct(data.users/fUsersTotal*100) : "—";
     tr.append(tdName, tdDesc, tdCount, tdPct);
     tbody.appendChild(tr);
 
@@ -2138,7 +2247,8 @@ function renderTab(containerId, p, deviceLabel) {
     });
     card2.appendChild(btn);
   }
-  evBody.appendChild(card2);
+  container.appendChild(card2);
+  }
 }
 
 /* ===================== combine desktop+mobile ===================== */

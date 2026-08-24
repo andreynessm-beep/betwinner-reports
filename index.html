@@ -447,7 +447,6 @@
   #tt.show { opacity: 1; transform: translateY(0); }
   #tt .tt-title { font-weight: 700; margin-bottom: 2px; }
 
-  footer.report-footer { margin-top: 40px; font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--grid); padding-top: 14px; }
 
   #loading-indicator {
     display: flex; align-items: center; gap: 12px; justify-content: center;
@@ -507,10 +506,6 @@
   <div class="tab-panel" id="panel-desktop"></div>
   <div class="tab-panel" id="panel-mobile"></div>
   <div id="panel-site-lite" style="display:none;"></div>
-
-  <footer class="report-footer" id="report-footer">
-    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 17.08.2026 (день запуска аналитики на betwinner.com). Автор: Андрей, веб-аналитик.
-  </footer>
 </div>
 
 <div id="tt"></div>
@@ -2646,12 +2641,6 @@ function renderAll(site) {
     document.getElementById("panel-" + activeBtn.dataset.tab).classList.add("active");
     document.getElementById("report-title").textContent = `${site} — веб-аналитика`;
     document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4${site === "betwinner.com" ? " · дефолт-домен, шаблон для остальных" : ""}`;
-    // launch date shown here must track the site actually on screen -- keep
-    // in sync with SITE_LAUNCH_DATES in scripts/ga4_fetch_report_data.py
-    const launchDates = { "betwinner.com": "17.08.2026", "betwinner.ke": "17.08.2026" };
-    const launchDate = launchDates[site] || "17.08.2026";
-    document.getElementById("report-footer").textContent =
-      `Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с ${launchDate} (день запуска аналитики на ${site}). Автор: Андрей, веб-аналитик.`;
   } else {
     // switching to a site-switcher (lite) domain: none of the 3 tab-panels
     // should show through underneath panel-site-lite.

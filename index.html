@@ -1194,9 +1194,28 @@ function buildDualTrendChart(seriesA, seriesB) {
     const yFor = v => padT + (H - padT - padB) * (1 - v / max);
     const coords = pts.map(p => [xFor(dateIndex.get(p.date)), yFor(p[series.key])]);
     const color = cssVar(series.colorVar);
+    const smoothD = smoothPath(coords);
+
+    // soft gradient fill under each curve, same look as the single-series
+    // chart -- low opacity per series so two overlapping fills still read
+    // cleanly instead of turning into a solid block
+    const gradId = "dualArea" + Math.random().toString(36).slice(2, 7);
+    const defs = document.createElementNS(svgNS, "defs");
+    const grad = document.createElementNS(svgNS, "linearGradient");
+    grad.setAttribute("id", gradId); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0"); grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
+    const gs1 = document.createElementNS(svgNS, "stop"); gs1.setAttribute("offset", "0%"); gs1.setAttribute("stop-color", color); gs1.setAttribute("stop-opacity", "0.22");
+    const gs2 = document.createElementNS(svgNS, "stop"); gs2.setAttribute("offset", "100%"); gs2.setAttribute("stop-color", color); gs2.setAttribute("stop-opacity", "0");
+    grad.append(gs1, gs2); defs.appendChild(grad); svg.appendChild(defs);
+    const baseline = H - padB;
+    const area = document.createElementNS(svgNS, "path");
+    area.setAttribute("d", `${smoothD} L ${coords[coords.length-1][0]},${baseline} L ${coords[0][0]},${baseline} Z`);
+    area.setAttribute("fill", `url(#${gradId})`);
+    area.style.opacity = "0"; area.style.transition = "opacity .6s ease .4s";
+    svg.appendChild(area);
+    setTimeout(() => { area.style.opacity = "1"; }, 20);
 
     const line = document.createElementNS(svgNS, "path");
-    line.setAttribute("d", smoothPath(coords));
+    line.setAttribute("d", smoothD);
     line.setAttribute("fill", "none");
     line.setAttribute("stroke", color);
     line.setAttribute("stroke-width", "3");

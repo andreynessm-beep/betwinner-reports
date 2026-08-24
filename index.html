@@ -1249,6 +1249,34 @@ function buildCountryTable(countries) {
   table.appendChild(thead);
   const tbody = document.createElement("tbody");
   const sorted = (countries || []).slice().sort((a,b) => b.sessions - a.sessions);
+
+  // totals row: computed over ALL countries (not just the visible top 10), so
+  // it stays correct whether the "показать ещё" list is expanded or not
+  const totalSessions = sorted.reduce((s,c) => s + (c.sessions||0), 0);
+  const totalUsers = sorted.reduce((s,c) => s + (c.totalUsers||0), 0);
+  const totalSignUps = sorted.reduce((s,c) => s + (c.signUps||0), 0);
+  const totalBounceW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.bounceRate||0), 0);
+  const totalEngW = sorted.reduce((s,c) => s + (c.sessions||0) * (c.engagementRate||0), 0);
+  if (sorted.length) {
+    const totalTr = document.createElement("tr"); totalTr.style.fontWeight = "600"; totalTr.style.borderTop = "2px solid var(--grid)";
+    const totalCells = [
+      "Итого",
+      fmtInt(totalSessions),
+      fmtInt(totalUsers),
+      totalSessions ? fmtPct(totalBounceW / totalSessions) : "—",
+      totalSessions ? fmtPct(totalEngW / totalSessions) : "—",
+      totalSignUps ? fmtInt(totalSignUps) : "—",
+      totalSessions && totalSignUps ? fmtPct(totalSignUps / totalSessions * 100) : "—",
+    ];
+    totalCells.forEach((val, i) => {
+      const td = document.createElement("td");
+      td.className = i === 0 ? "name-cell" : "num";
+      td.textContent = val;
+      totalTr.appendChild(td);
+    });
+    tbody.appendChild(totalTr);
+  }
+
   const makeRow = (c, hidden) => {
     const tr = document.createElement("tr");
     if (hidden) tr.style.display = "none";
@@ -1395,6 +1423,15 @@ function computeFilteredTrend(sessionRows) {
     if (!map.has(r.date)) map.set(r.date, { date: r.date, sessions: 0, totalUsers: 0, screenPageViews: 0 });
     const acc = map.get(r.date);
     acc.sessions += r.sessions; acc.totalUsers += r.totalUsers; acc.screenPageViews += r.screenPageViews;
+  });
+  return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
+}
+function computeFilteredEventTrend(eventRows, eventName) {
+  const map = new Map();
+  (eventRows || []).forEach(r => {
+    if (r.event !== eventName) return;
+    if (!map.has(r.date)) map.set(r.date, { date: r.date, count: 0 });
+    map.get(r.date).count += r.count;
   });
   return Array.from(map.values()).sort((a,b) => a.date.localeCompare(b.date));
 }
@@ -1594,6 +1631,7 @@ function renderTab(containerId, p, deviceLabel) {
     const fEventsAll = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, "all")) : events;
     const fEventsFunnel = hasFlat ? computeFilteredEvents(filterEventRows(eventRows, filters, funnelMode)) : events;
     const fTrend = hasFlat ? computeFilteredTrend(fSessionRows) : trend;
+    const fRegTrend = hasFlat ? computeFilteredEventTrend(filterEventRows(eventRows, filters, "all"), "sign_up_success") : [];
 
     const stepsFrom = fEvents => [
       { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
@@ -1668,6 +1706,17 @@ function renderTab(containerId, p, deviceLabel) {
     trendCard.appendChild(buildTrendChart(fTrend || [], "sessions", "Сессии"));
     belowFilterZone.appendChild(trendCard);
 
+    // Registrations only use the clean post-fix window (see
+    // SIGN_UP_SUCCESS_CLEAN_START server-side) -- so this chart naturally
+    // starts later than the sessions chart when the period spans the bugged
+    // days, instead of plotting inflated counts.
+    if (fRegTrend.length) {
+      sectionTitle(belowFilterZone, "Динамика регистраций по дням", "успешных регистраций в день");
+      const regTrendCard = document.createElement("div"); regTrendCard.className = "card reveal";
+      regTrendCard.appendChild(buildTrendChart(fRegTrend, "count", "Регистрации"));
+      belowFilterZone.appendChild(regTrendCard);
+    }
+
     // kpiZone/belowFilterZone are rebuilt from scratch on every filter change, so
     // freshly-created .reveal elements start at opacity:0 again each time — must
     // re-trigger the entrance transition here, not just once on initial page load,
@@ -1698,33 +1747,42 @@ function renderTab(containerId, p, deviceLabel) {
   geoCard.appendChild(buildCountryTable(countries || []));
   geoBody.appendChild(geoCard);
 
-  const lpBody = collapsibleSection(el, "Топ посадочных страниц", "качество каждой страницы: отказы, вовлечённость, регистрации");
+  const lpBody = collapsibleSection(el, "Топ посадочных страниц", "с какой страницы человек начал визит — трафик, вовлечённость и весь путь до регистрации по каждой странице отдельно");
   const lpCard = document.createElement("div"); lpCard.className = "card";
   const lpTable = document.createElement("table"); lpTable.className = "data-table";
   const lpThead = document.createElement("thead");
   lpThead.innerHTML = `<tr>
     <th>Страница</th>
     <th style="text-align:right">Сессии</th>
+    <th style="text-align:right">Польз.</th>
     <th style="text-align:right" title="Сколько страниц в среднем просматривает посетитель за визит, начавшийся с этой страницы.">Стр./сессию ⓘ</th>
+    <th style="text-align:right" title="Сколько времени в среднем длится визит, начавшийся с этой страницы.">Ср. время ⓘ</th>
     <th style="text-align:right" title="Доля сессий без какого-либо взаимодействия с сайтом (или короче 10 сек и без второй страницы).">Отказы ⓘ</th>
     <th style="text-align:right" title="Доля сессий с осмысленным взаимодействием (10+ сек, или 2+ страницы, или ключевое событие).">Вовлечённость ⓘ</th>
+    <th style="text-align:right" title="Сколько визитов, начавшихся с этой страницы, дошли хотя бы до начала заполнения формы регистрации.">Начали рег. ⓘ</th>
+    <th style="text-align:right" title="Доля сессий с этой страницы, дошедших до начала заполнения формы.">Старт % ⓘ</th>
     <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»), а не просто клик по кнопке.">Регистраций ⓘ</th>
     <th style="text-align:right">Конверсия</th>
   </tr>`;
   lpTable.appendChild(lpThead);
   const lpTbody = document.createElement("tbody");
-  const lpSorted = (landingPages || []).slice().sort((a,b) => b.sessions - a.sessions).slice(0, 10);
+  const lpSorted = (landingPages || []).slice().sort((a,b) => b.sessions - a.sessions).slice(0, 15);
   lpSorted.forEach(l => {
     const tr = document.createElement("tr");
     const perSession = l.sessions > 0 ? (l.screenPageViews / l.sessions).toFixed(1).replace(".", ",") : "—";
-    const cr = l.sessions > 0 && l.goal ? fmtPct(l.goal / l.sessions * 100) : "—";
+    const startPct = l.sessions > 0 && l.regStarts ? fmtPct(l.regStarts / l.sessions * 100) : "—";
+    const cr = l.sessions > 0 && l.signUps ? fmtPct(l.signUps / l.sessions * 100) : "—";
     const cells = [
       l.name || "/",
       fmtInt(l.sessions),
+      l.totalUsers ? fmtInt(l.totalUsers) : "—",
       perSession,
+      l.avgSessionSec ? fmtDur(l.avgSessionSec) : "—",
       l.bounceRate != null ? fmtPct(l.bounceRate) : "—",
       l.engagementRate != null ? fmtPct(l.engagementRate) : "—",
-      l.goal ? fmtInt(l.goal) : "—",
+      l.regStarts ? fmtInt(l.regStarts) : "—",
+      startPct,
+      l.signUps ? fmtInt(l.signUps) : "—",
       cr,
     ];
     cells.forEach((c, i) => {
@@ -1739,7 +1797,7 @@ function renderTab(containerId, p, deviceLabel) {
   lpCard.appendChild(lpTable);
   lpBody.appendChild(lpCard);
 
-  const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители");
+  const nvrBody = collapsibleSection(el, "Новые и вернувшиеся посетители", "кто реально доходит до регистрации — новички или те, кто уже был на сайте");
   const nvrCard = document.createElement("div"); nvrCard.className = "card";
   const nvrTotal = Math.max((nvr?.new || 0) + (nvr?.returning || 0) + (nvr?.unclassified || 0), 1);
   const stat = document.createElement("div"); stat.className = "split-stat";
@@ -1763,6 +1821,57 @@ function renderTab(containerId, p, deviceLabel) {
   bar.appendChild(seg(nvr?.returning || 0, cssVar("--series-3")));
   bar.appendChild(seg(nvr?.unclassified || 0, cssVar("--grid")));
   nvrCard.appendChild(bar);
+
+  // Comparison table -- the split% alone doesn't say anything actionable.
+  // This answers the actual question: do new or returning visitors behave
+  // differently, and which segment actually converts to registration?
+  if (nvr?.detail) {
+    const cmpTitle = document.createElement("div");
+    cmpTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
+    cmpTitle.textContent = "Сравнение по качеству и конверсии";
+    nvrCard.appendChild(cmpTitle);
+    const cmpTable = document.createElement("table"); cmpTable.className = "data-table";
+    const cmpThead = document.createElement("thead");
+    cmpThead.innerHTML = `<tr>
+      <th>Сегмент</th>
+      <th style="text-align:right">Сессии</th>
+      <th style="text-align:right">Польз.</th>
+      <th style="text-align:right">Отказы</th>
+      <th style="text-align:right">Вовлечённость</th>
+      <th style="text-align:right">Ср. время</th>
+      <th style="text-align:right" title="Сколько сессий этого сегмента дошли хотя бы до начала заполнения формы регистрации.">Начали рег. ⓘ</th>
+      <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»).">Регистраций ⓘ</th>
+      <th style="text-align:right">Конверсия</th>
+    </tr>`;
+    cmpTable.appendChild(cmpThead);
+    const cmpTbody = document.createElement("tbody");
+    const segments = [["new", "Новые"], ["returning", "Вернувшиеся"]];
+    if (nvr.detail.unclassified?.sessions) segments.push(["unclassified", "Не классифицировано"]);
+    segments.forEach(([key, label]) => {
+      const d = nvr.detail[key] || {};
+      const tr = document.createElement("tr");
+      const cells = [
+        label,
+        fmtInt(d.sessions || 0),
+        d.totalUsers ? fmtInt(d.totalUsers) : "—",
+        d.sessions ? fmtPct(d.bounceRate) : "—",
+        d.sessions ? fmtPct(d.engagementRate) : "—",
+        d.avgSessionSec ? fmtDur(d.avgSessionSec) : "—",
+        d.regStarts ? fmtInt(d.regStarts) : "—",
+        d.signUps ? fmtInt(d.signUps) : "—",
+        d.sessions && d.signUps ? fmtPct(d.signUpRate) : "—",
+      ];
+      cells.forEach((c, i) => {
+        const td = document.createElement("td");
+        td.className = i === 0 ? "name-cell" : "num";
+        td.textContent = c;
+        tr.appendChild(td);
+      });
+      cmpTbody.appendChild(tr);
+    });
+    cmpTable.appendChild(cmpTbody);
+    nvrCard.appendChild(cmpTable);
+  }
 
   // daily breakdown -- a single aggregate split hides whether the new/
   // returning mix is stable or shifting (e.g. a campaign that only brings
@@ -1941,6 +2050,25 @@ function mergeCountries(a, b) {
   })).sort((x,y) => y.sessions - x.sessions);
 }
 function round2(n) { return Math.round(n * 100) / 100; }
+function mergeNvr(d, m) {
+  const out = { new: (d?.new||0) + (m?.new||0), returning: (d?.returning||0) + (m?.returning||0), unclassified: (d?.unclassified||0) + (m?.unclassified||0), detail: {} };
+  ["new", "returning", "unclassified"].forEach(key => {
+    const dd = d?.detail?.[key] || {}, md = m?.detail?.[key] || {};
+    const sessions = (dd.sessions||0) + (md.sessions||0);
+    const signUps = (dd.signUps||0) + (md.signUps||0);
+    out.detail[key] = {
+      sessions,
+      totalUsers: (dd.totalUsers||0) + (md.totalUsers||0),
+      bounceRate: sessions ? ((dd.bounceRate||0)*(dd.sessions||0) + (md.bounceRate||0)*(md.sessions||0)) / sessions : 0,
+      engagementRate: sessions ? ((dd.engagementRate||0)*(dd.sessions||0) + (md.engagementRate||0)*(md.sessions||0)) / sessions : 0,
+      avgSessionSec: sessions ? ((dd.avgSessionSec||0)*(dd.sessions||0) + (md.avgSessionSec||0)*(md.sessions||0)) / sessions : 0,
+      regStarts: (dd.regStarts||0) + (md.regStarts||0),
+      signUps,
+      signUpRate: sessions ? round2(signUps / sessions * 100) : 0,
+    };
+  });
+  return out;
+}
 function mergeSources(a, b) {
   const map = new Map();
   [...(a||[]), ...(b||[])].forEach(row => {
@@ -1967,13 +2095,31 @@ function mergeTrend(a, b) {
   return Array.from(map.values()).sort((x,y) => x.date.localeCompare(y.date));
 }
 function mergeLandingPages(a, b) {
+  // bounceRate/engagementRate/avgSessionSec are ratios, not additive -- an
+  // earlier version of this merge dropped them entirely (map entries never
+  // carried the fields), which silently showed "—" for every row on any
+  // combined (desktop+mobile) tab. Session-weight them properly instead, same
+  // pattern as mergeCountries/mergeSources.
   const map = new Map();
   [...(a||[]), ...(b||[])].forEach(row => {
-    if (!map.has(row.name)) map.set(row.name, { name: row.name, sessions: 0, screenPageViews: 0, goal: 0 });
+    if (!map.has(row.name)) map.set(row.name, { name: row.name, sessions: 0, totalUsers: 0, screenPageViews: 0, regStarts: 0, signUps: 0, _bounceW: 0, _engW: 0, _durW: 0 });
     const acc = map.get(row.name);
-    acc.sessions += row.sessions; acc.screenPageViews += row.screenPageViews; acc.goal += row.goal || 0;
+    acc.sessions += row.sessions;
+    acc.totalUsers += row.totalUsers || 0;
+    acc.screenPageViews += row.screenPageViews;
+    acc.regStarts += row.regStarts || 0;
+    acc.signUps += row.signUps || 0;
+    acc._bounceW += (row.sessions||0) * (row.bounceRate||0);
+    acc._engW += (row.sessions||0) * (row.engagementRate||0);
+    acc._durW += (row.sessions||0) * (row.avgSessionSec||0);
   });
-  return Array.from(map.values()).sort((x,y) => y.sessions - x.sessions);
+  return Array.from(map.values()).map(acc => ({
+    name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, screenPageViews: acc.screenPageViews,
+    regStarts: acc.regStarts, signUps: acc.signUps,
+    bounceRate: acc.sessions ? acc._bounceW / acc.sessions : 0,
+    engagementRate: acc.sessions ? acc._engW / acc.sessions : 0,
+    avgSessionSec: acc.sessions ? acc._durW / acc.sessions : 0,
+  })).sort((x,y) => y.sessions - x.sessions);
 }
 function mergeEventDetails(a, b) {
   const out = {};
@@ -2019,11 +2165,7 @@ function combineProps(desktop, mobile) {
     browsers: mergeBreakdown(desktop.browsers, mobile.browsers, ["sessions"]),
     operating_systems: mergeBreakdown(desktop.operating_systems, mobile.operating_systems, ["sessions"]),
     landing_pages: mergeLandingPages(desktop.landing_pages, mobile.landing_pages),
-    new_vs_returning: {
-      new: (desktop.new_vs_returning?.new||0) + (mobile.new_vs_returning?.new||0),
-      returning: (desktop.new_vs_returning?.returning||0) + (mobile.new_vs_returning?.returning||0),
-      unclassified: (desktop.new_vs_returning?.unclassified||0) + (mobile.new_vs_returning?.unclassified||0),
-    },
+    new_vs_returning: mergeNvr(desktop.new_vs_returning, mobile.new_vs_returning),
     event_details: mergeEventDetails(desktop.event_details, mobile.event_details),
     filter_session_rows: [...(desktop.filter_session_rows||[]), ...(mobile.filter_session_rows||[])],
     filter_event_rows: [...(desktop.filter_event_rows||[]), ...(mobile.filter_event_rows||[])],
@@ -2048,11 +2190,7 @@ function combineLite(d, m) {
     countries: mergeBreakdown(d.countries, m.countries, ["sessions", "totalUsers"]),
     browsers: mergeBreakdown(d.browsers, m.browsers, ["sessions"]),
     operating_systems: mergeBreakdown(d.operating_systems, m.operating_systems, ["sessions"]),
-    new_vs_returning: {
-      new: (d.new_vs_returning?.new||0) + (m.new_vs_returning?.new||0),
-      returning: (d.new_vs_returning?.returning||0) + (m.new_vs_returning?.returning||0),
-      unclassified: (d.new_vs_returning?.unclassified||0) + (m.new_vs_returning?.unclassified||0),
-    },
+    new_vs_returning: mergeNvr(d.new_vs_returning, m.new_vs_returning),
   };
 }
 
@@ -2115,9 +2253,6 @@ function renderAll(site) {
   CURRENT_SITE = site;
   const isMain = site === "betwinner.com";
   document.getElementById("device-tabs").style.display = isMain ? "" : "none";
-  document.getElementById("panel-combined").style.display = isMain ? "" : "none";
-  document.getElementById("panel-desktop").style.display = "none";
-  document.getElementById("panel-mobile").style.display = "none";
   document.getElementById("panel-site-lite").style.display = isMain ? "none" : "";
   document.getElementById("period-picker").style.display = isMain ? "" : "none";
 
@@ -2132,13 +2267,20 @@ function renderAll(site) {
     renderTab("panel-combined", combined, "ПК + Моб суммарно.");
     renderTab("panel-desktop", desktop, "версия для настольных компьютеров");
     renderTab("panel-mobile", mobile, "мобильная версия сайта");
-    // restore whichever device tab was active
+    // restore whichever device tab was active -- visibility is driven ENTIRELY
+    // by the "active" class (.tab-panel{display:none}/.tab-panel.active{display:block}
+    // in CSS); no inline style.display here, or it silently outranks the class
+    // by specificity and never gets cleared (this broke the whole report for
+    // the ПК/Моб tabs before -- content rendered fine, just stayed invisible).
     const activeBtn = document.querySelector("#device-tabs .tab-btn.active") || document.querySelector("#device-tabs .tab-btn");
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     document.getElementById("panel-" + activeBtn.dataset.tab).classList.add("active");
     document.getElementById("report-title").textContent = "betwinner.com — веб-аналитика";
     document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4 · дефолт-домен, шаблон для остальных`;
   } else {
+    // switching to a site-switcher (lite) domain: none of the 3 tab-panels
+    // should show through underneath panel-site-lite.
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     const siteData = data.sites[site];
     const lite = siteData.error ? siteData : combineLite(siteData.desktop, siteData.mobile);
     renderSiteLite("panel-site-lite", siteData.error ? siteData : lite, site);

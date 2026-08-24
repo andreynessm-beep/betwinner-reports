@@ -156,6 +156,7 @@
   .period-pill.active { background: var(--brand-a); border-color: var(--brand-a); color: #fff; }
   .period-pill:disabled { opacity: .35; cursor: not-allowed; }
   .period-pill:disabled:hover { border-color: var(--border); color: var(--text-secondary); }
+  #period-row-days .period-pill { padding: 6px 10px; min-width: 34px; text-align: center; }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--grid); margin-bottom: 24px; position: relative; }
   .tab-btn {
@@ -490,6 +491,7 @@
   <div class="period-picker" id="period-picker" style="display:none;">
     <div class="period-row" id="period-row-months"></div>
     <div class="period-row" id="period-row-weeks" style="display:none;"></div>
+    <div class="period-row" id="period-row-days" style="display:none;"></div>
   </div>
 
   <div class="tabs" id="device-tabs" style="display:none;">
@@ -1230,6 +1232,66 @@ function buildSourceGroupTable(channels, sources) {
   return table;
 }
 
+// Countries with the same "is this actually worth it" signal the sources
+// table has -- sessions alone can't tell you whether a country converts.
+function buildCountryTable(countries) {
+  const table = document.createElement("table"); table.className = "data-table";
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr>
+    <th>Страна</th>
+    <th style="text-align:right">Сессии</th>
+    <th style="text-align:right">Пользователи</th>
+    <th style="text-align:right">Отказы</th>
+    <th style="text-align:right">Вовлечённость</th>
+    <th style="text-align:right" title="Успешно завершённые регистрации (подтверждено появлением экрана «Регистрация завершена»), а не просто клик по кнопке.">Успешных регистраций ⓘ</th>
+    <th style="text-align:right">Конверсия</th>
+  </tr>`;
+  table.appendChild(thead);
+  const tbody = document.createElement("tbody");
+  const sorted = (countries || []).slice().sort((a,b) => b.sessions - a.sessions);
+  const makeRow = (c, hidden) => {
+    const tr = document.createElement("tr");
+    if (hidden) tr.style.display = "none";
+    const cells = [
+      c.name,
+      fmtInt(c.sessions),
+      fmtInt(c.totalUsers),
+      c.bounceRate != null ? fmtPct(c.bounceRate) : "—",
+      c.engagementRate != null ? fmtPct(c.engagementRate) : "—",
+      c.signUps ? fmtInt(c.signUps) : "—",
+      c.sessions && c.signUps ? fmtPct(c.signUps / c.sessions * 100) : "—",
+    ];
+    cells.forEach((val, i) => {
+      const td = document.createElement("td");
+      td.className = i === 0 ? "name-cell" : "num";
+      td.textContent = val;
+      tr.appendChild(td);
+    });
+    return tr;
+  };
+  const VISIBLE = 10;
+  sorted.slice(0, VISIBLE).forEach(c => tbody.appendChild(makeRow(c, false)));
+  const rest = sorted.slice(VISIBLE);
+  if (rest.length) {
+    const hiddenRows = rest.map(c => makeRow(c, true));
+    hiddenRows.forEach(r => tbody.appendChild(r));
+    const toggleTr = document.createElement("tr");
+    const toggleTd = document.createElement("td"); toggleTd.className = "name-cell"; toggleTd.colSpan = 7;
+    const toggleBtn = document.createElement("span");
+    toggleBtn.style.color = "var(--series-1)"; toggleBtn.style.cursor = "pointer"; toggleBtn.style.textDecoration = "underline dotted";
+    toggleBtn.textContent = `Показать ещё ${rest.length} стран`;
+    toggleBtn.addEventListener("click", () => {
+      const opening = hiddenRows[0].style.display === "none";
+      hiddenRows.forEach(r => r.style.display = opening ? "" : "none");
+      toggleBtn.textContent = opening ? "Скрыть" : `Показать ещё ${rest.length} стран`;
+    });
+    toggleTd.appendChild(toggleBtn); toggleTr.appendChild(toggleTd);
+    tbody.appendChild(toggleTr);
+  }
+  table.appendChild(tbody);
+  return table;
+}
+
 /* ===================== KPI tile ===================== */
 const KPI_ICONS = {
   sessions: '<path d="M3 12h4l2.5 7L13 4l2.5 8H21" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -1279,8 +1341,19 @@ function kpiTile(label, rawValue, tipKey, opts) {
 /* ===================== filters (client-side, zero extra API calls) ===================== */
 // Every filter just sums matching rows out of the flat tables the Python
 // script already fetched — recompute is instant, no network round-trip.
+// periodDateRange() (defined below, reads the global PERIOD_STATE from the
+// calendar picker) is applied HERE, at the single source every KPI/trend/
+// event number is derived from -- an earlier version tried to pre-filter
+// p.totals externally instead, but renderTab's own hasFlat path recomputes
+// totals straight from these raw rows and silently ignored that override,
+// so the period picker never actually changed anything it displayed.
+function inPeriodRange(dateStr) {
+  const range = typeof periodDateRange === "function" ? periodDateRange() : null;
+  return !range || (dateStr >= range.start && dateStr <= range.end);
+}
 function filterSessionRows(rows, f) {
   return (rows || []).filter(r =>
+    inPeriodRange(r.date) &&
     (f.country === "all" || r.country === f.country) &&
     (f.channel === "all" || r.channel === f.channel) &&
     (f.os === "all" || r.os === f.os)
@@ -1288,6 +1361,7 @@ function filterSessionRows(rows, f) {
 }
 function filterEventRows(rows, f, nvrMode) {
   return (rows || []).filter(r =>
+    inPeriodRange(r.date) &&
     (f.country === "all" || r.country === f.country) &&
     (f.channel === "all" || r.channel === f.channel) &&
     (f.os === "all" || r.os === f.os) &&
@@ -1375,10 +1449,11 @@ function monthsInQuarter(year, q) {
 // doesn't lose your place. Keeping "all" as its own mode (rather than
 // quarter===null) avoids the picker silently re-selecting the current
 // quarter the next time it rebuilds and it re-populates quarter from data.
-let PERIOD_STATE = { mode: "all", quarter: null, month: null, week: null };
+let PERIOD_STATE = { mode: "all", quarter: null, month: null, week: null, day: null };
 
 function periodDateRange() {
   if (PERIOD_STATE.mode === "all" || !PERIOD_STATE.quarter) return null;
+  if (PERIOD_STATE.mode === "day" && PERIOD_STATE.day) return { start: PERIOD_STATE.day, end: PERIOD_STATE.day };
   if (PERIOD_STATE.mode === "week" && PERIOD_STATE.week) return PERIOD_STATE.week;
   if (PERIOD_STATE.mode === "month" && PERIOD_STATE.month) {
     const mm = String(PERIOD_STATE.month).padStart(2, "0");
@@ -1416,7 +1491,8 @@ function buildPeriodPicker(availableDates) {
     monthsRow.appendChild(pill(MONTH_NAMES[m - 1], PERIOD_STATE.mode === "month" && PERIOD_STATE.month === m, () => { PERIOD_STATE.mode = "month"; PERIOD_STATE.month = m; onPeriodChange(); }));
   });
 
-  if (PERIOD_STATE.mode === "month" || PERIOD_STATE.mode === "week") {
+  const daysRow = document.getElementById("period-row-days");
+  if (PERIOD_STATE.mode === "month" || PERIOD_STATE.mode === "week" || PERIOD_STATE.mode === "day") {
     weeksRow.style.display = "";
     weeksRow.innerHTML = "";
     weeksRow.appendChild(pill("Весь месяц", PERIOD_STATE.mode === "month", () => { PERIOD_STATE.mode = "month"; onPeriodChange(); }));
@@ -1425,8 +1501,22 @@ function buildPeriodPicker(availableDates) {
       const active = PERIOD_STATE.mode === "week" && PERIOD_STATE.week && PERIOD_STATE.week.start === w.start && PERIOD_STATE.week.end === w.end;
       weeksRow.appendChild(pill(`${fmtDM(w.start)}–${fmtDM(w.end)}`, active, () => { PERIOD_STATE.mode = "week"; PERIOD_STATE.week = w; onPeriodChange(); }, !hasData));
     });
+
+    // day-of-month pills -- every calendar day, disabled if no data that day
+    daysRow.style.display = "";
+    daysRow.innerHTML = "";
+    const mm = String(PERIOD_STATE.month).padStart(2, "0");
+    const y = PERIOD_STATE.quarter.year;
+    const numDays = lastDayOfMonth(y, PERIOD_STATE.month);
+    for (let d = 1; d <= numDays; d++) {
+      const dateStr = `${y}-${mm}-${String(d).padStart(2, "0")}`;
+      const hasData = availableDates.includes(dateStr);
+      const active = PERIOD_STATE.mode === "day" && PERIOD_STATE.day === dateStr;
+      daysRow.appendChild(pill(String(d), active, () => { PERIOD_STATE.mode = "day"; PERIOD_STATE.day = dateStr; onPeriodChange(); }, !hasData));
+    }
   } else {
     weeksRow.style.display = "none";
+    daysRow.style.display = "none";
   }
 }
 
@@ -1603,20 +1693,9 @@ function renderTab(containerId, p, deviceLabel) {
   srcCard.appendChild(buildSourceGroupTable(channels, sources));
   srcBody.appendChild(srcCard);
 
-  const geoBody = collapsibleSection(el, "География", "топ стран по сессиям");
+  const geoBody = collapsibleSection(el, "География", "какие страны реально дают регистрации, а не только трафик");
   const geoCard = document.createElement("div"); geoCard.className = "card";
-  const top8c = (countries || []).slice(0, 8);
-  const restC = (countries || []).slice(8);
-  const restCSum = restC.reduce((s,c) => s + c.sessions, 0);
-  const geoBars = top8c.map(c => ({ label: c.name, value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` }));
-  if (restCSum > 0) {
-    geoBars.push({
-      label: `Остальные страны (${restC.length})`, value: restCSum,
-      tip: `${fmtInt(restCSum)} сессий суммарно по ${restC.length} странам — нажмите, чтобы развернуть`,
-      subEntries: restC.map(c => ({ label: c.name, value: c.sessions, tip: `${fmtInt(c.sessions)} сессий, ${fmtInt(c.totalUsers)} пользователей` })),
-    });
-  }
-  geoCard.appendChild(buildRankedBars(geoBars));
+  geoCard.appendChild(buildCountryTable(countries || []));
   geoBody.appendChild(geoCard);
 
   const lpBody = collapsibleSection(el, "Топ посадочных страниц", "качество каждой страницы: отказы, вовлечённость, регистрации");
@@ -1684,6 +1763,53 @@ function renderTab(containerId, p, deviceLabel) {
   bar.appendChild(seg(nvr?.returning || 0, cssVar("--series-3")));
   bar.appendChild(seg(nvr?.unclassified || 0, cssVar("--grid")));
   nvrCard.appendChild(bar);
+
+  // daily breakdown -- a single aggregate split hides whether the new/
+  // returning mix is stable or shifting (e.g. a campaign that only brings
+  // one-time visitors, or a loyalty dip after a bad release).
+  if (hasFlat) {
+    // this section isn't inside renderDynamic (not reactive to the country/
+    // channel/os filter bar), so there's no fSessionRows here -- reuse the
+    // same "all/all/all" filter (which still applies the current period
+    // selection via inPeriodRange baked into filterSessionRows).
+    const nvrSessionRows = filterSessionRows(sessionRows, initialFilters);
+    const byDate = new Map();
+    nvrSessionRows.forEach(r => {
+      if (!byDate.has(r.date)) byDate.set(r.date, { new: 0, returning: 0, unclassified: 0 });
+      const bucket = byDate.get(r.date);
+      if (r.nvr === "new") bucket.new += r.sessions;
+      else if (r.nvr === "returning") bucket.returning += r.sessions;
+      else bucket.unclassified += r.sessions;
+    });
+    const days = Array.from(byDate.keys()).sort();
+    if (days.length > 1) {
+      const trendTitle = document.createElement("div");
+      trendTitle.style.cssText = "font-size:12px;color:var(--text-secondary);margin:18px 0 8px;font-weight:600;";
+      trendTitle.textContent = "Динамика по дням — доля новых/вернувшихся";
+      nvrCard.appendChild(trendTitle);
+      const dayMax = Math.max(...days.map(d => { const b = byDate.get(d); return b.new + b.returning + b.unclassified; }), 1);
+      const chartRow = document.createElement("div");
+      chartRow.style.cssText = "display:flex;align-items:flex-end;gap:4px;height:90px;";
+      days.forEach(d => {
+        const b = byDate.get(d);
+        const total = b.new + b.returning + b.unclassified;
+        const outer = document.createElement("div");
+        outer.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:stretch;height:90px;justify-content:flex-end;";
+        const colWrap = document.createElement("div");
+        colWrap.tabIndex = 0;
+        colWrap.style.cssText = `display:flex;flex-direction:column-reverse;height:${Math.max(total/dayMax*100,3)}%;border-radius:3px;overflow:hidden;cursor:pointer;`;
+        const segNew = document.createElement("div"); segNew.style.cssText = `background:${cssVar("--series-1")};height:${total?b.new/total*100:0}%;min-height:${b.new?1:0}px;`;
+        const segRet = document.createElement("div"); segRet.style.cssText = `background:${cssVar("--series-3")};height:${total?b.returning/total*100:0}%;min-height:${b.returning?1:0}px;`;
+        const segUn = document.createElement("div"); segUn.style.cssText = `background:${cssVar("--grid")};height:${total?b.unclassified/total*100:0}%;min-height:${b.unclassified?1:0}px;`;
+        colWrap.append(segNew, segRet, segUn);
+        const pctNew = total ? Math.round(b.new/total*100) : 0;
+        bindTip(colWrap, d, `${d}: новых ${fmtInt(b.new)} (${pctNew}%), вернувшихся ${fmtInt(b.returning)}${b.unclassified ? ", не классифицировано " + fmtInt(b.unclassified) : ""} — всего ${fmtInt(total)} сессий`);
+        outer.appendChild(colWrap);
+        chartRow.appendChild(outer);
+      });
+      nvrCard.appendChild(chartRow);
+    }
+  }
   nvrBody.appendChild(nvrCard);
 
   const techBody = collapsibleSection(el, "Устройства", "браузеры и операционные системы");
@@ -1798,6 +1924,23 @@ function mergeBreakdown(a, b, metricKeys) {
   });
   return Array.from(map.values()).sort((x,y) => y[metricKeys[0]] - x[metricKeys[0]]);
 }
+function mergeCountries(a, b) {
+  const map = new Map();
+  [...(a||[]), ...(b||[])].forEach(row => {
+    if (!map.has(row.name)) map.set(row.name, { name: row.name, sessions: 0, totalUsers: 0, signUps: 0, _bounceW: 0, _engW: 0 });
+    const acc = map.get(row.name);
+    acc.sessions += row.sessions; acc.totalUsers += row.totalUsers; acc.signUps += row.signUps || 0;
+    acc._bounceW += (row.sessions||0) * (row.bounceRate||0);
+    acc._engW += (row.sessions||0) * (row.engagementRate||0);
+  });
+  return Array.from(map.values()).map(acc => ({
+    name: acc.name, sessions: acc.sessions, totalUsers: acc.totalUsers, signUps: acc.signUps,
+    signUpRate: acc.sessions ? round2(acc.signUps / acc.sessions * 100) : 0,
+    bounceRate: acc.sessions ? acc._bounceW / acc.sessions : 0,
+    engagementRate: acc.sessions ? acc._engW / acc.sessions : 0,
+  })).sort((x,y) => y.sessions - x.sessions);
+}
+function round2(n) { return Math.round(n * 100) / 100; }
 function mergeSources(a, b) {
   const map = new Map();
   [...(a||[]), ...(b||[])].forEach(row => {
@@ -1872,7 +2015,7 @@ function combineProps(desktop, mobile) {
     trend: mergeTrend(desktop.trend, mobile.trend),
     channels: mergeBreakdown(desktop.channels, mobile.channels, ["sessions", "totalUsers"]),
     sources: mergeSources(desktop.sources, mobile.sources),
-    countries: mergeBreakdown(desktop.countries, mobile.countries, ["sessions", "totalUsers"]),
+    countries: mergeCountries(desktop.countries, mobile.countries),
     browsers: mergeBreakdown(desktop.browsers, mobile.browsers, ["sessions"]),
     operating_systems: mergeBreakdown(desktop.operating_systems, mobile.operating_systems, ["sessions"]),
     landing_pages: mergeLandingPages(desktop.landing_pages, mobile.landing_pages),
@@ -1965,20 +2108,6 @@ let DEMO_MODE = false;
 let REPORT_DATA = null;
 let CURRENT_SITE = "betwinner.com";
 
-function applyPeriod(p) {
-  // Only totals/trend get swapped by the period picker -- the funnel and
-  // event breakdowns stay cumulative-since-launch (slicing those by a
-  // short window isn't fetched, to keep the report light -- the picker's
-  // job is trend/KPI drill-down, not a second full funnel per period).
-  const range = periodDateRange();
-  if (!range) return p; // "Весь период"
-  const rows = (p.filter_session_rows || []).filter(r => r.date >= range.start && r.date <= range.end);
-  if (!rows.length) {
-    return { ...p, totals: { sessions: 0, totalUsers: 0, screenPageViews: 0, averageSessionDuration: 0, bounceRate: 0, engagementRate: 0 }, trend: [] };
-  }
-  return { ...p, totals: computeFilteredTotals(rows), trend: computeFilteredTrend(rows) };
-}
-
 function onPeriodChange() { renderAll(CURRENT_SITE); }
 
 function renderAll(site) {
@@ -1994,8 +2123,11 @@ function renderAll(site) {
 
   if (isMain) {
     buildPeriodPicker((data.properties.desktop.trend || []).map(t => t.date).sort());
-    const desktop = applyPeriod(data.properties.desktop);
-    const mobile = applyPeriod(data.properties.mobile);
+    // renderTab derives every number from filter_session_rows/filter_event_rows
+    // via filterSessionRows/filterEventRows, which already bake in the current
+    // period selection (see inPeriodRange) -- no need to pre-filter p here.
+    const desktop = data.properties.desktop;
+    const mobile = data.properties.mobile;
     const combined = combineProps(desktop, mobile);
     renderTab("panel-combined", combined, "ПК + Моб суммарно.");
     renderTab("panel-desktop", desktop, "версия для настольных компьютеров");

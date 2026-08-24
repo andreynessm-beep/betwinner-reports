@@ -2640,7 +2640,7 @@ function renderAll(site) {
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
     document.getElementById("panel-" + activeBtn.dataset.tab).classList.add("active");
     document.getElementById("report-title").textContent = `${site} — веб-аналитика`;
-    document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4${site === "betwinner.com" ? " · дефолт-домен, шаблон для остальных · включает трафик доменов-зеркал (betwinner2.com и др.), не только сам betwinner.com" : ""}`;
+    document.getElementById("report-sub").innerHTML = `Обновлено: <b id="generated-at">${new Date(data.generated_at).toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" })}</b> · Источник: GA4${site === "betwinner.com" ? " · дефолт-домен, шаблон для остальных · + все зеркала" : ""}`;
   } else {
     // switching to a site-switcher (lite) domain: none of the 3 tab-panels
     // should show through underneath panel-site-lite.

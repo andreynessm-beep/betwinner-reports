@@ -515,6 +515,9 @@
 
 <script>
 /* ===================== password gate ===================== */
+// Temporarily disabled by request -- gate code/markup left intact, just
+// force-unlocked on load. To re-enable, delete this line.
+sessionStorage.setItem("bw_unlocked", "1");
 const PASS_HASH = "979ca6be98edebc04c18e7b2b0ed7f321762a1e5f329d58ea4f0c57511468b32";
 async function sha256Hex(str) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));

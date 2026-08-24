@@ -610,9 +610,9 @@ const KPI_TIPS = {
   bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие.",
   engagementRate: "Обратный показатель отказам — доля визитов, где человек реально был активен: провёл больше 10 секунд, посмотрел 2+ страницы или сделал целевое действие.",
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
-  signupRate: "Какая доля всех сессий дошла до заполнения формы регистрации (кликнула хотя бы в одно поле).",
+  signupRate: "Какая доля уникальных посетителей дошла до заполнения формы регистрации (кликнула хотя бы в одно поле). Считается по людям, а не по визитам — один человек может зайти несколько раз, это не должно занижать цифру.",
   completionRate: "Из тех, кто начал заполнять форму регистрации, какая доля дошла до конца и успешно завершила регистрацию.",
-  overallConversionRate: "Главная цифра воронки: какая доля ВСЕХ визитов на сайт (не только тех, кто начал форму) закончилась успешной регистрацией.",
+  overallConversionRate: "Главная цифра воронки: какая доля ВСЕХ уникальных посетителей сайта (не только тех, кто начал форму) закончила успешной регистрацией. Считается по людям, а не по визитам.",
 };
 
 const CHANNEL_LABELS = {
@@ -1055,6 +1055,17 @@ function buildRankedBars(entries, opts) {
   return wrap;
 }
 
+// "Nice" round axis step (1/2/5 x10^n) so gridline labels read as 100K/
+// 150K/200K instead of arbitrary fractions of the raw data max.
+function niceAxisStep(max, targetTicks) {
+  if (max <= 0) return 1;
+  const raw = max / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  return step * mag;
+}
+
 // Simple line/area chart for a daily trend — sequential single hue (dataviz: "trend over time -> line")
 function buildTrendChart(points, key, label, colorVar) {
   colorVar = colorVar || "--brand-a";
@@ -1070,8 +1081,10 @@ function buildTrendChart(points, key, label, colorVar) {
     }
     return wrap;
   }
-  const W = 640, H = 190, padL = 40, padR = 30, padT = 24, padB = 24;
-  const max = Math.max(...points.map(p => p[key]), 1);
+  const W = 640, H = 190, padL = 46, padR = 20, padT = 24, padB = 24;
+  const rawMax = Math.max(...points.map(p => p[key]), 1);
+  const axisStep = niceAxisStep(rawMax, 4);
+  const max = Math.ceil(rawMax / axisStep) * axisStep;
   const xStep = (W - padL - padR) / (points.length - 1);
   const yFor = v => padT + (H - padT - padB) * (1 - v / max);
   const xFor = i => padL + i * xStep;
@@ -1081,17 +1094,23 @@ function buildTrendChart(points, key, label, colorVar) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.classList.add("trend-svg");
 
-  // No numeric axis labels here — every point already carries its own value
-  // label, and a "max" axis label in the top-left corner collides with a
-  // near-max first point's label (both land in the same few pixels).
-  [0, max].forEach(v => {
+  // Left-hand measurement scale: gridlines at "nice" round steps, with a
+  // compact label at each one (100K/150K/...) instead of just a bare 0/max
+  // pair -- lets the reader judge the real magnitude, not only the shape.
+  for (let v = 0; v <= max + 0.001; v += axisStep) {
     const y = yFor(v);
     const line = document.createElementNS(svgNS, "line");
     line.setAttribute("x1", padL); line.setAttribute("x2", W - padR);
     line.setAttribute("y1", y); line.setAttribute("y2", y);
     line.setAttribute("stroke", cssVar("--grid")); line.setAttribute("stroke-width", "1");
     svg.appendChild(line);
-  });
+    const axisLabel = document.createElementNS(svgNS, "text");
+    axisLabel.setAttribute("x", padL - 8); axisLabel.setAttribute("y", y + 3);
+    axisLabel.setAttribute("text-anchor", "end");
+    axisLabel.setAttribute("class", "trend-axis-label");
+    axisLabel.textContent = fmtCompact(v);
+    svg.appendChild(axisLabel);
+  }
 
   const gradId = "trendArea" + Math.random().toString(36).slice(2,7);
   const defs = document.createElementNS(svgNS, "defs");
@@ -1679,10 +1698,18 @@ function renderTab(containerId, p, deviceLabel) {
     const fTrend = hasFlat ? computeFilteredTrend(fSessionRows) : trend;
     const fRegTrend = hasFlat ? computeFilteredEventTrend(filterEventRows(eventRows, filters, "all"), "sign_up_success") : [];
 
+    // Funnel + conversion rates are USER-based, not session-based: a person
+    // can visit several times before registering (or while filling the form
+    // more than once), which would otherwise dilute the "visit -> register"
+    // rate against a denominator inflated by repeat browsing. Registration
+    // itself is a person-level action, so its funnel should be measured
+    // against distinct people, not visits. The top traffic KPIs (Сессии /
+    // Пользователи / bounce / engagement / duration) stay session-based --
+    // those ARE inherently per-visit concepts and don't make sense per-user.
     const stepsFrom = fEvents => [
-      { name: "__visit", label: "Визит на сайт", value: fTotals.sessions, desc: "Все сессии за период (с учётом фильтров)." },
+      { name: "__visit", label: "Посетители сайта", value: fTotals.totalUsers, desc: "Все уникальные пользователи за период (с учётом фильтров)." },
       ...["reg_form_start", "sign_up_success"].map(name => ({
-        name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].count) || 0, desc: GLOSSARY[name].desc,
+        name, label: GLOSSARY[name].label, value: (fEvents[name] && fEvents[name].users) || 0, desc: GLOSSARY[name].desc,
       })),
     ];
     // Only 3 real funnel steps -- a separate "arrived at registration page"
@@ -1697,7 +1724,7 @@ function renderTab(containerId, p, deviceLabel) {
     // funnel's real step 1.
     const kpiSteps = stepsFrom(fEventsAll);
     const signupRate = kpiSteps[0].value > 0 ? kpiSteps[1].value / kpiSteps[0].value * 100 : 0;
-    const overallConversionRate = fTotals.sessions > 0 ? kpiSteps[2].value / fTotals.sessions * 100 : 0;
+    const overallConversionRate = fTotals.totalUsers > 0 ? kpiSteps[2].value / fTotals.totalUsers * 100 : 0;
 
     // ---- THE funnel diagram: the one thing that reacts to the toggle ----
     const funnelSteps = stepsFrom(fEventsFunnel);
@@ -1709,12 +1736,12 @@ function renderTab(containerId, p, deviceLabel) {
     kpiGrid.appendChild(kpiTile("Сессии", fTotals.sessions, "sessions"));
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
     kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[1].value)} человек` }));
-    kpiGrid.appendChild(kpiTile("Конверсия сайта: визит → регистрация", overallConversionRate, "overallConversionRate", {
+    kpiGrid.appendChild(kpiTile("Конверсия сайта: посетитель → регистрация", overallConversionRate, "overallConversionRate", {
       // this is two small percentages multiplied together (6% * 0.4% и т.п.),
       // so it can land well under 0.1% -- fmtPct's fixed 1 decimal would
       // round the site's headline conversion number to a flat, useless "0%"
       format: v => (v < 1 ? v.toFixed(2) : v.toFixed(1)).replace(".", ",") + "%",
-      sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(fTotals.sessions)} визитов`,
+      sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(fTotals.totalUsers)} посетителей`,
     }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
@@ -1728,7 +1755,7 @@ function renderTab(containerId, p, deviceLabel) {
     if (funnelSteps[0].value > 0) {
       const wrap = document.createElement("div"); wrap.className = "funnel-highlight reveal";
       const t = document.createElement("div"); t.className = "funnel-highlight-title"; t.textContent = "Воронка регистрации";
-      const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "визит → начали заполнять форму → успешная регистрация";
+      const h = document.createElement("div"); h.className = "funnel-highlight-hint"; h.textContent = "посетитель → начали заполнять форму → успешная регистрация";
       wrap.append(t, h);
 
       if (hasFlat) {

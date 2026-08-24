@@ -606,7 +606,7 @@ const KPI_TIPS = {
   sessions: "Сколько раз в сумме заходили на сайт за период (один человек может зайти несколько раз — это будет несколько сессий).",
   totalUsers: "Сколько разных людей (устройств/браузеров) заходило на сайт за период.",
   screenPageViews: "Сколько страниц в сумме было открыто всеми посетителями.",
-  averageSessionDuration: "Сколько в среднем длится один визит на сайт.",
+  averageSessionDuration: "Сколько в среднем длится визит СРЕДИ ТЕХ, КТО реально был вовлечён (не отказ). Если считать по всем визитам подряд, отказы (70%+ на этом сайте) размывают цифру почти до нуля и она перестаёт что-либо показывать.",
   bounceRate: "Доля визитов, где человек не проявил активность: был на сайте меньше 10 секунд, посмотрел только 1 страницу и не сделал целевое действие.",
   engagementRate: "Обратный показатель отказам — доля визитов, где человек реально был активен: провёл больше 10 секунд, посмотрел 2+ страницы или сделал целевое действие.",
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
@@ -1620,7 +1620,15 @@ function computeFilteredTotals(sessionRows) {
     sessions, totalUsers, screenPageViews,
     bounceRate: sessions > 0 ? bounceSessions / sessions * 100 : 0,
     engagementRate: sessions > 0 ? engagedSessions / sessions * 100 : 0,
-    averageSessionDuration: sessions > 0 ? engagementDurationSec / sessions : 0,
+    // Divided by ALL sessions (incl. ~70-77% bounces with ~0 engaged time on
+    // this site), this collapsed to a misleading "18 seconds" -- GA4's own
+    // "average session duration" metric is 5-10x higher, but it isn't a
+    // summable raw metric (can't be correctly re-derived per an arbitrary
+    // client-side period/country/etc. filter the way engagementDurationSec
+    // can). Dividing by ENGAGED sessions instead uses only data already in
+    // the flat rows, stays fully period-reactive, and answers the question
+    // that's actually useful: how long do people who didn't bounce stay.
+    averageSessionDuration: engagedSessions > 0 ? engagementDurationSec / engagedSessions : 0,
   };
 }
 function computeFilteredEvents(eventRows) {
@@ -2021,7 +2029,7 @@ function renderTab(containerId, p, deviceLabel) {
       format: v => (v < 1 ? v.toFixed(2) : v.toFixed(1)).replace(".", ",") + "%",
       sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(fTotals.totalUsers)} посетителей`,
     }));
-    kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
+    kpiGrid.appendChild(kpiTile("Ср. время вовлечённой сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(avgLoadTimeMs && avgLoadTimeMs > 0

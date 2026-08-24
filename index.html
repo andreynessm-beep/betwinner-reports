@@ -485,7 +485,7 @@
     </div>
     <div class="header-controls">
       <select id="site-switcher" class="top-select"></select>
-      <div class="period-badge"><span class="dot"></span><span id="period-label">с 01.08.2026</span></div>
+      <div class="period-badge"><span class="dot"></span><span id="period-label">с 17.08.2026</span></div>
     </div>
   </header>
 
@@ -509,7 +509,7 @@
   <div id="panel-site-lite" style="display:none;"></div>
 
   <footer class="report-footer">
-    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 01.08.2026: 01–17.08 — трафик (сессии/страны/каналы/устройства) из старой (нативной) аналитики сайта; регистрации и остальные пользовательские события до 17.08 не собирались и не показываются. С 17.08.2026 — полностью из новой аналитики GTM (день запуска нашего трекинга на betwinner.com). Автор: Андрей, веб-аналитик.
+    Отчёт собирается автоматически из Google Analytics 4 (без ручного ввода чисел). Данные — с 17.08.2026 (день запуска аналитики на betwinner.com). Автор: Андрей, веб-аналитик.
   </footer>
 </div>
 
@@ -1844,7 +1844,6 @@ function buildPeriodPicker(availableDates) {
     return b;
   };
   monthsRow.appendChild(pill("Весь период", PERIOD_STATE.mode === "all", () => { PERIOD_STATE.mode = "all"; onPeriodChange(); }));
-  monthsRow.appendChild(pill(`Q${PERIOD_STATE.quarter.q} ${PERIOD_STATE.quarter.year} целиком`, PERIOD_STATE.mode === "quarter", () => { PERIOD_STATE.mode = "quarter"; onPeriodChange(); }));
   monthsWithData.forEach(m => {
     monthsRow.appendChild(pill(MONTH_NAMES[m - 1], PERIOD_STATE.mode === "month" && PERIOD_STATE.month === m, () => { PERIOD_STATE.mode = "month"; PERIOD_STATE.month = m; onPeriodChange(); }));
   });

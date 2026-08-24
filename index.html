@@ -1192,7 +1192,11 @@ function buildTrendChart(points, key, label, colorVar) {
     if (i % labelEvery === 0 || i === points.length - 1) {
       const valLabel = document.createElementNS(svgNS, "text");
       valLabel.setAttribute("x", cx); valLabel.setAttribute("y", Math.max(cy - 10, 11));
-      valLabel.setAttribute("text-anchor", "middle");
+      // Center-anchored labels on the very first/last point spill sideways
+      // past the plot area -- the first one in particular can land right on
+      // top of the Y-axis scale labels when its value sits near a gridline.
+      // Anchor those two to the point instead of straddling it.
+      valLabel.setAttribute("text-anchor", i === 0 ? "start" : (i === points.length - 1 ? "end" : "middle"));
       valLabel.setAttribute("class", "trend-value-label");
       valLabel.textContent = fmtCompact(p[key]);
       valLabel.style.opacity = "0"; valLabel.style.transition = "opacity .3s ease";

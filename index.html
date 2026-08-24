@@ -586,6 +586,7 @@ const KPI_TIPS = {
   avgLoadTime: "Среднее время, за которое страница полностью загружалась у посетителя.",
   signupRate: "Какая доля всех сессий дошла до заполнения формы регистрации (кликнула хотя бы в одно поле).",
   completionRate: "Из тех, кто начал заполнять форму регистрации, какая доля дошла до конца и успешно завершила регистрацию.",
+  overallConversionRate: "Главная цифра воронки: какая доля ВСЕХ визитов на сайт (не только тех, кто начал форму) закончилась успешной регистрацией.",
 };
 
 const CHANNEL_LABELS = {
@@ -1149,13 +1150,13 @@ function buildTrendChart(points, key, label) {
 
 // Two-series version of buildTrendChart: sessions + registrations on one
 // chart instead of two stacked ones. The two series differ by 3+ orders of
-// magnitude (hundreds of thousands vs. low hundreds), so a single shared
-// y-scale would flatten the registrations line to nothing -- each series is
-// scaled to its OWN max instead (no numeric axis is drawn either way, same
-// as the single-series chart, so this never implies the two curves are on
-// one comparable scale). Labels are anchored above the sessions line and
-// below the registrations line so they can't collide even on days both
-// series have a point.
+// magnitude (hundreds of thousands vs. low hundreds) -- an earlier version
+// scaled each to its OWN max sharing the full chart height, but that let
+// both curves converge near their peaks and their value labels collided
+// right at the crossing point. Fixed by giving each series its own
+// vertical BAND (sessions on top, registrations below) that never overlap
+// -- the curves physically cannot cross, so labels can't collide either,
+// regardless of how the data moves.
 function buildDualTrendChart(seriesA, seriesB) {
   const wrap = document.createElement("div"); wrap.className = "trend-wrap";
   const allDates = Array.from(new Set([...(seriesA.points||[]).map(p=>p.date), ...(seriesB.points||[]).map(p=>p.date)])).sort();
@@ -1165,7 +1166,11 @@ function buildDualTrendChart(seriesA, seriesB) {
     wrap.appendChild(note);
     return wrap;
   }
-  const W = 640, H = 230, padL = 20, padR = 20, padT = 40, padB = 24;
+  const W = 640, H = 260, padL = 20, padR = 20, padT = 22, padB = 32;
+  const bandGap = 20;
+  const usableH = H - padT - padB;
+  const bandA = { top: padT, bottom: padT + usableH * 0.56 };
+  const bandB = { top: bandA.bottom + bandGap, bottom: H - padB };
   const xStep = (W - padL - padR) / (allDates.length - 1);
   const xFor = i => padL + i * xStep;
   const dateIndex = new Map(allDates.map((d,i) => [d,i]));
@@ -1187,11 +1192,15 @@ function buildDualTrendChart(seriesA, seriesB) {
     return d;
   };
 
-  function drawSeries(series, labelAbove) {
+  function drawSeries(series, band, labelAbove) {
     const pts = (series.points || []).filter(p => dateIndex.has(p.date));
     if (pts.length < 2) return;
+    // zero-baselined within the series' own band (not min-based) -- an area
+    // chart implies "this much of the total," so the baseline has to stay
+    // real zero, not a cherry-picked floor that would exaggerate day-to-day
+    // wobble that isn't actually there.
     const max = Math.max(...pts.map(p => p[series.key]), 1);
-    const yFor = v => padT + (H - padT - padB) * (1 - v / max);
+    const yFor = v => band.bottom - (band.bottom - band.top) * (v / max);
     const coords = pts.map(p => [xFor(dateIndex.get(p.date)), yFor(p[series.key])]);
     const color = cssVar(series.colorVar);
     const smoothD = smoothPath(coords);
@@ -1206,7 +1215,7 @@ function buildDualTrendChart(seriesA, seriesB) {
     const gs1 = document.createElementNS(svgNS, "stop"); gs1.setAttribute("offset", "0%"); gs1.setAttribute("stop-color", color); gs1.setAttribute("stop-opacity", "0.22");
     const gs2 = document.createElementNS(svgNS, "stop"); gs2.setAttribute("offset", "100%"); gs2.setAttribute("stop-color", color); gs2.setAttribute("stop-opacity", "0");
     grad.append(gs1, gs2); defs.appendChild(grad); svg.appendChild(defs);
-    const baseline = H - padB;
+    const baseline = band.bottom;
     const area = document.createElementNS(svgNS, "path");
     area.setAttribute("d", `${smoothD} L ${coords[coords.length-1][0]},${baseline} L ${coords[0][0]},${baseline} Z`);
     area.setAttribute("fill", `url(#${gradId})`);
@@ -1238,7 +1247,7 @@ function buildDualTrendChart(seriesA, seriesB) {
 
       const valLabel = document.createElementNS(svgNS, "text");
       valLabel.setAttribute("x", cx);
-      valLabel.setAttribute("y", labelAbove ? Math.max(cy - 10, 12) : Math.min(cy + 18, H - padB - 2));
+      valLabel.setAttribute("y", labelAbove ? Math.max(cy - 10, band.top + 2) : Math.min(cy + 18, band.bottom + 12));
       valLabel.setAttribute("text-anchor", "middle");
       valLabel.setAttribute("class", "trend-value-label");
       valLabel.style.fill = color;
@@ -1254,8 +1263,8 @@ function buildDualTrendChart(seriesA, seriesB) {
     });
   }
 
-  drawSeries(seriesA, true);
-  drawSeries(seriesB, false);
+  drawSeries(seriesA, bandA, true);
+  drawSeries(seriesB, bandB, false);
 
   const labelEvery = Math.ceil(allDates.length / 8);
   allDates.forEach((d, i) => {
@@ -1477,12 +1486,13 @@ const KPI_ICONS = {
   signupRate: '<path d="M4 4h16l-6 8v6l-4 2v-8L4 4z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>',
   completionRate: '<path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
   engagementRate: '<path d="M3 17l5-5 4 4 9-9" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  overallConversionRate: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>',
 };
 const KPI_ACCENTS = {
   sessions: "--series-1", totalUsers: "--series-7", averageSessionDuration: "--series-3",
   bounceRate: "--series-4", avgLoadTime: "--series-2",
   signupRate: "--series-5", completionRate: "--series-6",
-  engagementRate: "--good",
+  engagementRate: "--good", overallConversionRate: "--brand-a",
 };
 
 function kpiTile(label, rawValue, tipKey, opts) {
@@ -1799,6 +1809,7 @@ function renderTab(containerId, p, deviceLabel) {
     const kpiSteps = stepsFrom(fEventsAll);
     const signupRate = kpiSteps[0].value > 0 ? kpiSteps[1].value / kpiSteps[0].value * 100 : 0;
     const completionRate = kpiSteps[1].value > 0 ? kpiSteps[2].value / kpiSteps[1].value * 100 : 0;
+    const overallConversionRate = fTotals.sessions > 0 ? kpiSteps[2].value / fTotals.sessions * 100 : 0;
 
     // ---- THE funnel diagram: the one thing that reacts to the toggle ----
     const funnelSteps = stepsFrom(fEventsFunnel);
@@ -1811,6 +1822,13 @@ function renderTab(containerId, p, deviceLabel) {
     kpiGrid.appendChild(kpiTile("Пользователи", fTotals.totalUsers, "totalUsers"));
     kpiGrid.appendChild(kpiTile("Начали заполнять форму", signupRate, "signupRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[1].value)} человек` }));
     kpiGrid.appendChild(kpiTile("Успешно завершили регистрацию", completionRate, "completionRate", { format: v => fmtPct(v), sub: `${fmtInt(kpiSteps[2].value)} человек` }));
+    kpiGrid.appendChild(kpiTile("Конверсия сайта: визит → регистрация", overallConversionRate, "overallConversionRate", {
+      // this is two small percentages multiplied together (6% * 0.4% и т.п.),
+      // so it can land well under 0.1% -- fmtPct's fixed 1 decimal would
+      // round the site's headline conversion number to a flat, useless "0%"
+      format: v => (v < 1 ? v.toFixed(2) : v.toFixed(1)).replace(".", ",") + "%",
+      sub: `${fmtInt(kpiSteps[2].value)} из ${fmtInt(fTotals.sessions)} визитов`,
+    }));
     kpiGrid.appendChild(kpiTile("Ср. длительность сессии", fTotals.averageSessionDuration, "averageSessionDuration", { format: fmtDur }));
     kpiGrid.appendChild(kpiTile("Показатель отказов", fTotals.bounceRate, "bounceRate", { format: v => v.toFixed(0) + "%" }));
     kpiGrid.appendChild(kpiTile("Engagement rate", fTotals.engagementRate, "engagementRate", { format: v => v.toFixed(0) + "%" }));

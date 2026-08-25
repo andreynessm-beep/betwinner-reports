@@ -2719,10 +2719,15 @@ async function initReport() {
   const siteSelect = document.getElementById("site-switcher");
   const siteList = data.site_list || ["betwinner.com"];
   siteSelect.innerHTML = siteList.map(s => `<option value="${s}">${s}</option>`).join("");
-  siteSelect.value = "betwinner.com";
+  // ?site=betwinner.ke in the URL deep-links straight to that GEO's report
+  // (used by the report-link column in the status sheet) -- falls back to
+  // the default domain if the param is missing or names an unknown site.
+  const requestedSite = new URLSearchParams(location.search).get("site");
+  const initialSite = requestedSite && siteList.includes(requestedSite) ? requestedSite : "betwinner.com";
+  siteSelect.value = initialSite;
   siteSelect.addEventListener("change", () => renderAll(siteSelect.value));
 
-  renderAll("betwinner.com");
+  renderAll(initialSite);
 
   document.getElementById("loading-indicator").style.display = "none";
   document.getElementById("device-tabs").style.display = "";
